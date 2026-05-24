@@ -2,7 +2,8 @@
 
 PostgreSQL chaos-testing tool for local shadow databases. DataWraith is
 engine-first, pip-installable, MIT licensed, and designed to stress-test
-PostgreSQL without Docker or a system PostgreSQL install.
+PostgreSQL with an embedded runtime when available, or with a safe local
+PostgreSQL fallback on newer Python versions.
 
 ```bash
 pip install datawraith
@@ -20,8 +21,12 @@ The first release targets the Concurrency Test foundation and the Phase 2 branch
 - JSON report export contract
 - RW-heavy mixed SELECT/INSERT/UPDATE workload MVP
 - JSON report comparison via `sdb compare`
+- Safe local PostgreSQL fallback via `--database-url` /
+  `DATAWRAITH_DATABASE_URL` when embedded `pgserver` is unavailable
 
 Real embedded PostgreSQL E2E requires Python 3.12 with `pgserver` available.
+Python 3.13+ users can run the same execute flows against a local PostgreSQL
+instance.
 
 ## Developer quickstart
 
@@ -35,8 +40,9 @@ mypy datawraith
 ```
 
 > Note: `pgserver` currently publishes wheels through Python 3.12. On Python
-> 3.13, `sdb doctor` reports embedded PostgreSQL as unavailable until upstream
-> ships a compatible wheel.
+> 3.13+, use `--database-url postgresql://localhost/<db>` or set
+> `DATAWRAITH_DATABASE_URL=postgresql://localhost/<db>` to run against a local
+> PostgreSQL instance. DataWraith rejects non-local hosts by default.
 
 ## CLI
 
@@ -46,9 +52,11 @@ sdb --version       # show package version
 sdb doctor          # local environment health check
 sdb doctor --json   # machine-readable health check
 sdb init schema.sql # parse schema dry-run
+sdb init schema.sql --execute --database-url postgresql://localhost/datawraith
 sdb seed --table products --column id:int --column name:name --rows 10
 sdb attack concurrency
 sdb attack concurrency --execute --output report.json
+sdb attack concurrency --execute --database-url postgresql://localhost/datawraith --output report.json
 sdb attack rw-heavy --dry-run
 sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 100 --operations 1000 --output rw-heavy.json
 sdb compare report.json rw-heavy.json

@@ -13,6 +13,7 @@ from typing import Any
 
 import psycopg
 
+from datawraith.core.database_url import validate_local_database_url
 from datawraith.core.exceptions import ShadowDBError
 
 logger = logging.getLogger(__name__)
@@ -23,12 +24,22 @@ class ShadowDB:
 
     `pgserver` is imported lazily so CLI and contract tests remain usable on
     Python versions where upstream pgserver wheels are not available yet.
+    When `external_url` is provided, ShadowDB connects to a user-managed local
+    PostgreSQL instance instead of starting embedded pgserver.
     """
 
-    def __init__(self, data_dir: Path | None = None, cleanup_mode: str = "stop") -> None:
+    def __init__(
+        self,
+        data_dir: Path | None = None,
+        cleanup_mode: str = "stop",
+        external_url: str | None = None,
+    ) -> None:
         if cleanup_mode not in {"stop", "delete"}:
             raise ShadowDBError("cleanup_mode must be 'stop' or 'delete'")
 
+        self._external_url = (
+            validate_local_database_url(external_url) if external_url is not None else None
+        )
         self._owns_data_dir = data_dir is None
         self._data_dir = data_dir or Path(tempfile.mkdtemp(prefix="datawraith_"))
         self._cleanup_mode = cleanup_mode
@@ -36,13 +47,23 @@ class ShadowDB:
         self._uri: str | None = None
 
     def start(self) -> str:
-        """Start embedded PostgreSQL and return the connection URI."""
+        """Start embedded PostgreSQL or validate an external local URI."""
+        if self._external_url is not None:
+            try:
+                with psycopg.connect(self._external_url, connect_timeout=5) as conn:
+                    conn.execute("SELECT 1")
+            except psycopg.Error as exc:
+                raise ShadowDBError(f"Failed to connect to local PostgreSQL: {exc}") from exc
+            self._uri = self._external_url
+            return self._uri
+
         try:
             pgserver = importlib.import_module("pgserver")
         except ModuleNotFoundError as exc:
             raise ShadowDBError(
                 "pgserver is not installed for this Python runtime. Use Python 3.12 "
-                "or install a compatible pgserver wheel."
+                "for embedded PostgreSQL, or pass --database-url / set "
+                "DATAWRAITH_DATABASE_URL to a local PostgreSQL instance."
             ) from exc
 
         try:
@@ -57,6 +78,10 @@ class ShadowDB:
 
     def stop(self) -> None:
         """Stop PostgreSQL and remove owned temp data when configured."""
+        if self._external_url is not None:
+            self._uri = None
+            return
+
         if self._server is not None:
             try:
                 self._server.cleanup()

@@ -60,3 +60,15 @@ PDF format.
 Reason: Phase 4 should be testable in CI and safe by default. External DB
 connections, production writes, telemetry, and polished PDF design are deferred
 until the local contracts and report formats are stable.
+
+
+## 2026-05-24 - Add safe local PostgreSQL fallback for Python 3.13+
+
+Decision: keep embedded `pgserver` as the default experience where available,
+but allow execute commands to use `--database-url` or `DATAWRAITH_DATABASE_URL`
+when the URL targets localhost/loopback or a local socket.
+
+Reason: `pgserver` still gates embedded execution to Python 3.12, which makes
+the project harder to try on current runtimes. A local PostgreSQL fallback makes
+DataWraith more accessible for contributors and GitHub users without weakening
+the safety rule against accidental production database chaos testing.

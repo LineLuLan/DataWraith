@@ -25,16 +25,25 @@
 - `sdb report` exports JSON reports to SARIF, JUnit XML, and minimal PDF formats for CI/security workflows.
 - TUI currently acts as a command dashboard: runtime status, default ShadowDB path, scenario command hints, compare hints, and a report placeholder.
 
-## Embedded PostgreSQL
+## PostgreSQL runtime
 
-`ShadowDB` loads `pgserver` lazily. This keeps imports and CLI health checks
-usable on Python versions where `pgserver` wheels are not available yet.
-The default CLI execution path stores local embedded PostgreSQL data under
-`.datawraith/shadow`, which is gitignored and intended only for development
-shadow data.
+`ShadowDB` supports two local-only runtime modes:
+
+1. **Embedded mode**: load `pgserver` lazily and store local PostgreSQL data
+   under `.datawraith/shadow`, which is gitignored and intended only for
+   development shadow data.
+2. **Local PostgreSQL fallback**: accept `--database-url` or
+   `DATAWRAITH_DATABASE_URL` when the URL targets localhost/loopback or a local
+   socket. Non-local hosts are rejected by default so chaos scenarios are not
+   accidentally pointed at production infrastructure.
+
+This keeps the project easy to try on Python 3.13+ while preserving the
+zero-Docker embedded path for Python versions where `pgserver` wheels exist.
 
 ## Current Python support note
 
 The project code targets Python 3.12+. `pgserver` 0.1.4 currently publishes
-wheels through Python 3.12, so Python 3.13 can run scaffold checks but cannot
-start embedded PostgreSQL until upstream support exists.
+wheels through Python 3.12, so Python 3.13 cannot start embedded PostgreSQL
+until upstream support exists. Python 3.13 users can still run real execute
+flows against a local user-managed PostgreSQL instance via `--database-url` or
+`DATAWRAITH_DATABASE_URL`.

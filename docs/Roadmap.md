@@ -35,6 +35,20 @@
 - SARIF/JUnit/PDF reports
 - v1.0 launch readiness
 
+## Runtime accessibility hardening â€” GitHub-star readiness
+
+- [x] Keep embedded `pgserver` as the default zero-Docker experience on Python
+  3.12.
+- [x] Add safe local PostgreSQL fallback through `--database-url` and
+  `DATAWRAITH_DATABASE_URL` for Python 3.13+ users.
+- [x] Reject non-local PostgreSQL URLs by default to protect users from
+  accidental production chaos testing.
+- [ ] Add README badges/screenshots/GIFs once the public GitHub landing page is
+  ready.
+- [ ] Add Docker Compose quickstart as an optional local PostgreSQL fallback.
+- [ ] Run full real DB E2E on both Python 3.12 embedded mode and Python 3.13
+  local PostgreSQL fallback before tagging v0.1.0.
+
 ## Detailed plan
 
 See `docs/BuildPlan_AllPhases.md`, `docs/BuildPlan_Phase2.md`,
