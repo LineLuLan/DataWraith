@@ -11,6 +11,8 @@
   README, fixed the Python 3.12 concurrency E2E config bound, and documented the
   new runtime model. Windows embedded `pgserver` tests are skipped by default
   because bundled `initdb` is flaky on GitHub Windows runners.
+- Completed UX pass: added `sdb recipes`, `sdb quickstart`, quickstart report
+  exports, and TUI command hints so users do not need to memorize long syntax.
 - Not completed: Real database E2E still needs a running local PostgreSQL
   service or Python 3.12 + `pgserver` in the environment.
 - Verification: `ruff check .`, `mypy datawraith`, `pytest`,

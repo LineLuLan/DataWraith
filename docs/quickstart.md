@@ -3,6 +3,8 @@
 ```bash
 python -m pip install datawraith
 sdb
+sdb recipes
+sdb quickstart
 ```
 
 For local development:
@@ -18,6 +20,7 @@ pytest
 Phase 1 dry-run:
 
 ```bash
+sdb quickstart
 sdb init tests/fixtures/sample_schema.sql
 sdb seed --table products --column id:int --column name:name --column stock:int --rows 10
 sdb attack concurrency --dry-run
@@ -61,9 +64,7 @@ Local PostgreSQL fallback:
 ```bash
 docker compose up -d postgres
 $env:DATAWRAITH_DATABASE_URL="postgresql://localhost/datawraith"
-sdb init tests/fixtures/sample_schema.sql --execute
-sdb seed --table products --column id:int --column name:name --column stock:int --rows 10 --execute
-sdb attack concurrency --execute --duration 10 --workers 2 --updates 10 --output report.json
+sdb quickstart --execute --output-dir reports
 ```
 
 The bundled `docker-compose.yml` starts PostgreSQL with

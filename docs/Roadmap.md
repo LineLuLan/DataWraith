@@ -47,6 +47,8 @@
   commands.
 - [x] Add Docker Compose quickstart as an optional local PostgreSQL fallback.
 - [x] Add CI PostgreSQL fallback E2E job on Python 3.13.
+- [x] Add UX shortcuts (`sdb recipes`, `sdb quickstart`) so users do not need
+  to memorize long CLI syntax.
 - [ ] Add screenshots/GIFs once the interactive TUI is more than a command
   dashboard.
 - [ ] Run manual Python 3.12 embedded E2E before tagging v0.1.0.

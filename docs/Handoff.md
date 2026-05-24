@@ -6,21 +6,18 @@
 2. Install on Python 3.12 for embedded PostgreSQL work.
 3. Run `python -m pip install -e ".[dev]"`.
 4. Run `sdb doctor`, `pytest`, `ruff check .`, and `mypy datawraith`.
-5. If using Python 3.12, verify embedded mode with
+5. For UX-first testing, run `sdb recipes` and `sdb quickstart`.
+6. If using Python 3.12, verify embedded mode with
    `sdb init tests/fixtures/sample_schema.sql --execute`.
-6. If using Python 3.13+, start a local PostgreSQL instance and set
+7. If using Python 3.13+, start a local PostgreSQL instance and set
    `DATAWRAITH_DATABASE_URL=postgresql://localhost/<db>` or pass
    `--database-url postgresql://localhost/<db>` to execute commands.
    The bundled Docker fallback is
    `docker compose up -d postgres` with
    `postgresql://datawraith:datawraith@localhost:5432/datawraith`.
-7. Verify `sdb seed --table products --column id:int --column name:name --rows 5 --execute`.
-8. Verify `sdb attack concurrency --execute --output report.json`.
-9. Verify `sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output rw-heavy.json`.
-10. Verify `sdb attack migration --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output migration.json`.
-11. Verify `sdb ai analyze migration.json --provider openai` returns advisory output; provider network enrichment remains deferred.
-12. Verify `sdb attack security --execute --duration 10 --tenants 2 --rows-per-tenant 2 --output security.json`.
-13. Verify `sdb report security.json --format sarif|junit|pdf --output ...` exporters.
+8. Verify `sdb quickstart --execute --output-dir reports`.
+9. Verify `sdb ai analyze reports/migration.json --provider openai` returns advisory output; provider network enrichment remains deferred.
+10. Verify `sdb report reports/security.json --format sarif|junit|pdf --output ...` exporters.
 
 ## Known limitation
 
@@ -56,6 +53,8 @@ default.
   fallback for repeated commands.
 - `docker-compose.yml` starts a local PostgreSQL fallback for contributor E2E
   testing.
+- `sdb recipes` and `sdb quickstart` are the recommended UX entrypoints for
+  users who do not want to remember long command syntax.
 - GitHub Actions CI includes a `postgres-e2e` job that runs Phase 1-4 execute
   flows on Python 3.13 with `DATAWRAITH_E2E_DATABASE_URL`.
 - Root `README.md` is intentionally present as the GitHub landing page; other

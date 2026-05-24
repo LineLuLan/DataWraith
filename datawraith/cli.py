@@ -54,6 +54,15 @@ ai_app = typer.Typer(
 )
 app.add_typer(ai_app, name="ai")
 
+QUICKSTART_SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS dw_quickstart_products (
+    id integer,
+    name text NOT NULL,
+    stock integer NOT NULL DEFAULT 0
+);
+"""
+QUICKSTART_TABLE = "dw_quickstart_products"
+
 
 def _version_callback(value: bool) -> None:
     if value:
@@ -109,6 +118,113 @@ def doctor(
     for name, ok, detail in checks:
         icon = "OK" if ok else "WARN"
         typer.echo(f"[{icon}] {name}: {detail}")
+
+
+@app.command()
+def recipes() -> None:
+    """Print copy-pasteable commands so users do not need to memorize syntax."""
+    typer.echo("DataWraith recipes")
+    typer.echo("")
+    typer.echo("1) Check runtime")
+    typer.echo("   sdb doctor")
+    typer.echo("")
+    typer.echo("2) Fast dry-run tour")
+    typer.echo("   sdb quickstart")
+    typer.echo("")
+    typer.echo("3) Local PostgreSQL fallback")
+    typer.echo("   docker compose up -d postgres")
+    typer.echo(
+        "   $env:DATAWRAITH_DATABASE_URL="
+        '"postgresql://datawraith:datawraith@localhost:5432/datawraith"'
+    )
+    typer.echo("")
+    typer.echo("4) Run v1 smoke flow")
+    typer.echo("   sdb quickstart --execute --output-dir reports")
+    typer.echo("")
+    typer.echo("5) Individual attacks")
+    typer.echo("   sdb attack concurrency --dry-run")
+    typer.echo("   sdb attack rw-heavy --dry-run --row-count 10 --operations 20")
+    typer.echo("   sdb attack migration --dry-run")
+    typer.echo("   sdb attack security --dry-run")
+    typer.echo("")
+    typer.echo("6) Reports")
+    typer.echo("   sdb compare reports/concurrency.json reports/rw-heavy.json")
+    typer.echo("   sdb report reports/security.json --format sarif --output reports/security.sarif")
+
+
+@app.command()
+def quickstart(
+    execute: Annotated[
+        bool,
+        typer.Option("--execute", help="Run the local v1 smoke flow instead of printing commands."),
+    ] = False,
+    output_dir: Annotated[
+        Path,
+        typer.Option("--output-dir", help="Directory for generated quickstart reports."),
+    ] = Path("reports"),
+    duration: Annotated[int, typer.Option("--duration", help="Scenario duration in seconds.")] = 10,
+    workers: Annotated[int, typer.Option("--workers", help="Concurrent worker count.")] = 2,
+    rows: Annotated[int, typer.Option("--rows", help="Seed rows for quickstart products.")] = 10,
+    operations: Annotated[
+        int,
+        typer.Option("--operations", help="Operation cap for workload scenarios."),
+    ] = 20,
+    data_dir: Annotated[
+        Path | None,
+        typer.Option("--data-dir", help="ShadowDB data directory. Defaults to .datawraith/shadow."),
+    ] = None,
+    database_url: Annotated[
+        str | None,
+        typer.Option(
+            "--database-url",
+            help=(
+                "Use a local PostgreSQL URL instead of embedded pgserver. "
+                "Defaults to DATAWRAITH_DATABASE_URL when set."
+            ),
+        ),
+    ] = None,
+) -> None:
+    """Guided v1 smoke flow with safe laptop defaults."""
+    if not execute:
+        typer.echo("Quickstart dry-run. Copy one of these:")
+        typer.echo("")
+        typer.echo("  sdb doctor")
+        typer.echo("  sdb recipes")
+        typer.echo("  sdb quickstart --execute --output-dir reports")
+        typer.echo("")
+        typer.echo("If Python 3.13+ or pgserver is unavailable:")
+        typer.echo("  docker compose up -d postgres")
+        typer.echo(
+            "  $env:DATAWRAITH_DATABASE_URL="
+            '"postgresql://datawraith:datawraith@localhost:5432/datawraith"'
+        )
+        typer.echo("  sdb quickstart --execute --output-dir reports")
+        return
+
+    try:
+        reports = _run_quickstart(
+            output_dir=output_dir,
+            duration=duration,
+            workers=workers,
+            rows=rows,
+            operations=operations,
+            data_dir=data_dir or get_settings().shadow_data_dir,
+            database_url=database_url,
+        )
+    except DataWraithError as exc:
+        typer.echo(f"Quickstart failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo("Quickstart complete.")
+    for report_path in reports:
+        typer.echo(f"- {report_path}")
+    typer.echo("")
+    typer.echo(f"Next: sdb compare {output_dir / 'concurrency.json'} {output_dir / 'rw-heavy.json'}")
+    typer.echo(
+        "Next: "
+        f"sdb report {output_dir / 'security.json'} --format sarif "
+        f"--output {output_dir / 'security.sarif'}"
+    )
 
 
 @app.command()
@@ -559,6 +675,73 @@ def _create_shadow_db(data_dir: Path, database_url: str | None) -> ShadowDB:
         cleanup_mode="stop",
         external_url=resolved_database_url,
     )
+
+
+def _run_quickstart(
+    *,
+    output_dir: Path,
+    duration: int,
+    workers: int,
+    rows: int,
+    operations: int,
+    data_dir: Path,
+    database_url: str | None,
+) -> list[Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    db: ShadowDB | None = None
+    try:
+        db = _create_shadow_db(data_dir, database_url)
+        db.start()
+        asyncio.run(db.load_schema(QUICKSTART_SCHEMA_SQL))
+        execute_seed_plan(
+            db,
+            SeedPlan(
+                table=QUICKSTART_TABLE,
+                rows=rows,
+                columns=parse_column_specs(["id:int", "name:name", "stock:int"]),
+            ),
+        )
+    finally:
+        if db is not None:
+            db.stop()
+
+    quickstart_scenarios = ["concurrency", "rw-heavy", "migration", "security"]
+    written_reports: list[Path] = []
+    for scenario in quickstart_scenarios:
+        config = _build_attack_config(
+            scenario=scenario,
+            duration=duration,
+            workers=workers,
+            concurrent_updates=max(10, rows),
+            target_table=QUICKSTART_TABLE,
+            target_column="stock",
+            read_ratio=0.7,
+            row_count=rows,
+            operation_limit=operations,
+            slow_query_threshold_ms=100.0,
+            migration_operation="add_column",
+            lock_timeout_ms=500,
+            statement_timeout_ms=5000,
+            hold_lock_ms=0,
+            tenants=2,
+            rows_per_tenant=2,
+            fuzz_payload_limit=4,
+        )
+        result = asyncio.run(_execute_attack(scenario, config, data_dir, database_url))
+        report_path = output_dir / f"{scenario}.json"
+        JSONExporter().export(result, report_path)
+        written_reports.append(report_path)
+
+    security_report = output_dir / "security.json"
+    for report_format, suffix in [
+        ("sarif", "security.sarif"),
+        ("junit", "security.xml"),
+        ("pdf", "security.pdf"),
+    ]:
+        export_report(load_result(security_report), output_dir / suffix, cast(ReportFormat, report_format))
+        written_reports.append(output_dir / suffix)
+
+    return written_reports
 
 
 def _build_attack_config(

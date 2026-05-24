@@ -46,6 +46,98 @@ def test_doctor_json_accepts_local_database_url_fallback(monkeypatch) -> None:  
     assert database_check["detail"] == "configured local PostgreSQL fallback"
 
 
+def test_recipes_command_prints_copy_paste_commands() -> None:
+    result = CliRunner().invoke(app, ["recipes"])
+
+    assert result.exit_code == 0
+    assert "sdb quickstart --execute --output-dir reports" in result.output
+    assert "docker compose up -d postgres" in result.output
+
+
+def test_quickstart_dry_run_prints_guided_commands() -> None:
+    result = CliRunner().invoke(app, ["quickstart"])
+
+    assert result.exit_code == 0
+    assert "Quickstart dry-run" in result.output
+    assert "sdb recipes" in result.output
+
+
+def test_quickstart_execute_writes_reports(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    calls: list[str] = []
+
+    class FakeShadowDB:
+        def __init__(self, data_dir, cleanup_mode):  # type: ignore[no-untyped-def]
+            calls.append(f"db:{data_dir.name}:{cleanup_mode}")
+
+        def start(self) -> str:
+            calls.append("start")
+            return "postgresql://example"
+
+        async def load_schema(self, sql: str) -> None:
+            calls.append(f"schema:{'dw_quickstart_products' in sql}")
+
+        def stop(self) -> None:
+            calls.append("stop")
+
+    def fake_execute_seed_plan(db, plan):  # type: ignore[no-untyped-def]
+        calls.append(f"seed:{plan.table}:{plan.rows}")
+        return SeedResult(table=plan.table, rows_requested=plan.rows, rows_inserted=plan.rows, duration_seconds=0.1)
+
+    async def fake_execute_attack(scenario, config, data_dir, database_url=None):  # type: ignore[no-untyped-def]
+        calls.append(f"attack:{scenario}:{config.duration_seconds}:{data_dir.name}")
+        scenario_type = {
+            "concurrency": ScenarioType.CONCURRENCY,
+            "rw-heavy": ScenarioType.RW_HEAVY,
+            "migration": ScenarioType.MIGRATION,
+            "security": ScenarioType.SECURITY,
+        }[scenario]
+        return ScenarioResult(
+            scenario_name=scenario,
+            scenario_type=scenario_type,
+            config=config.model_dump(mode="json"),
+            started_at=datetime(2026, 5, 24, 12, 0, 0),
+            completed_at=datetime(2026, 5, 24, 12, 0, 1),
+            duration_seconds=1.0,
+            health_score=100,
+            metrics=HealthMetrics(
+                qps_max=2.0,
+                qps_avg=2.0,
+                latency_p50_ms=1.0,
+                latency_p95_ms=1.0,
+                latency_p99_ms=1.0,
+                error_count=0,
+                error_rate=0.0,
+            ),
+        )
+
+    monkeypatch.setattr(cli_module, "ShadowDB", FakeShadowDB)
+    monkeypatch.setattr(cli_module, "execute_seed_plan", fake_execute_seed_plan)
+    monkeypatch.setattr(cli_module, "_execute_attack", fake_execute_attack)
+    reports_dir = tmp_path / "reports"
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "quickstart",
+            "--execute",
+            "--output-dir",
+            str(reports_dir),
+            "--data-dir",
+            str(tmp_path / "shadow"),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Quickstart complete." in result.output
+    assert (reports_dir / "concurrency.json").exists()
+    assert (reports_dir / "rw-heavy.json").exists()
+    assert (reports_dir / "migration.json").exists()
+    assert (reports_dir / "security.json").exists()
+    assert (reports_dir / "security.sarif").exists()
+    assert "seed:dw_quickstart_products:10" in calls
+    assert "attack:security:10:shadow" in calls
+
+
 def test_init_command_dry_run(tmp_path) -> None:  # type: ignore[no-untyped-def]
     schema_path = tmp_path / "schema.sql"
     schema_path.write_text("CREATE TABLE products (id integer);", encoding="utf-8")
