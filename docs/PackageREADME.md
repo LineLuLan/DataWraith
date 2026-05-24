@@ -52,6 +52,8 @@ sdb attack concurrency --execute --output report.json
 sdb attack rw-heavy --dry-run
 sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 100 --operations 1000 --output rw-heavy.json
 sdb compare report.json rw-heavy.json
+sdb compare report.json rw-heavy.json --json
+sdb attack --all --execute --output-dir reports/
 python -m datawraith --version
 ```
 

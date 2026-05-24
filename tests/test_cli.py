@@ -151,6 +151,76 @@ def test_attack_rw_heavy_dry_run() -> None:
     assert "read_write_ratio" in result.output
 
 
+def test_attack_all_dry_run_lists_configs() -> None:
+    result = CliRunner().invoke(
+        app,
+        ["attack", "--all", "--dry-run", "--row-count", "10", "--operations", "5"],
+    )
+
+    assert result.exit_code == 0
+    assert "Scenario: concurrency" in result.output
+    assert "Scenario: rw-heavy" in result.output
+
+
+def test_attack_all_rejects_single_output_path(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    result = CliRunner().invoke(
+        app,
+        ["attack", "--all", "--output", str(tmp_path / "report.json")],
+    )
+
+    assert result.exit_code == 1
+    assert "--output is only valid for a single scenario" in result.output
+
+
+def test_attack_all_execute_writes_output_dir(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    calls: list[str] = []
+
+    async def fake_execute_attack(scenario, config, data_dir):  # type: ignore[no-untyped-def]
+        calls.append(f"{scenario}:{data_dir.name}")
+        scenario_type = ScenarioType.CONCURRENCY if scenario == "concurrency" else ScenarioType.RW_HEAVY
+        return ScenarioResult(
+            scenario_name=scenario,
+            scenario_type=scenario_type,
+            config=config.model_dump(mode="json"),
+            started_at=datetime(2026, 5, 24, 12, 0, 0),
+            completed_at=datetime(2026, 5, 24, 12, 0, 1),
+            duration_seconds=1.0,
+            health_score=100,
+            metrics=HealthMetrics(
+                qps_max=2.0,
+                qps_avg=2.0,
+                latency_p50_ms=1.0,
+                latency_p95_ms=1.0,
+                latency_p99_ms=1.0,
+                error_count=0,
+                error_rate=0.0,
+            ),
+        )
+
+    monkeypatch.setattr(cli_module, "_execute_attack", fake_execute_attack)
+    reports_dir = tmp_path / "reports"
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "attack",
+            "--all",
+            "--execute",
+            "--data-dir",
+            str(tmp_path / "shadow"),
+            "--output-dir",
+            str(reports_dir),
+            "--row-count",
+            "10",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert calls == ["concurrency:shadow", "rw-heavy:shadow"]
+    assert (reports_dir / "concurrency.json").exists()
+    assert (reports_dir / "rw-heavy.json").exists()
+
+
 def test_attack_output_requires_execute(tmp_path) -> None:  # type: ignore[no-untyped-def]
     result = CliRunner().invoke(
         app,
@@ -158,7 +228,7 @@ def test_attack_output_requires_execute(tmp_path) -> None:  # type: ignore[no-un
     )
 
     assert result.exit_code == 1
-    assert "--output requires --execute" in result.output
+    assert "--output/--output-dir requires --execute" in result.output
 
 
 def test_attack_invalid_config_exits_nonzero() -> None:
@@ -262,3 +332,39 @@ def test_compare_command_renders_report_delta(tmp_path) -> None:  # type: ignore
     assert result.exit_code == 0
     assert "Comparing concurrency -> rw-heavy" in result.output
     assert "health_score" in result.output
+
+
+def test_compare_command_json_output(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    baseline = ScenarioResult(
+        scenario_name="concurrency",
+        scenario_type=ScenarioType.CONCURRENCY,
+        config={"workers": 2},
+        started_at=datetime(2026, 5, 24, 12, 0, 0),
+        completed_at=datetime(2026, 5, 24, 12, 0, 1),
+        duration_seconds=1.0,
+        health_score=100,
+        metrics=HealthMetrics(
+            qps_max=2.0,
+            qps_avg=2.0,
+            latency_p50_ms=1.0,
+            latency_p95_ms=2.0,
+            latency_p99_ms=3.0,
+            error_count=0,
+            error_rate=0.0,
+        ),
+    )
+    baseline_path = tmp_path / "baseline.json"
+    current_path = tmp_path / "current.json"
+    payload = json.dumps(baseline.model_dump(mode="json"))
+    baseline_path.write_text(payload, encoding="utf-8")
+    current_path.write_text(payload, encoding="utf-8")
+
+    result = CliRunner().invoke(
+        app,
+        ["compare", str(baseline_path), str(current_path), "--json"],
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["baseline_scenario"] == "concurrency"
+    assert data["deltas"][0]["name"] == "health_score"

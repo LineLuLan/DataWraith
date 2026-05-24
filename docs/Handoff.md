@@ -27,7 +27,8 @@ support lands.
 - `sdb attack concurrency --dry-run` validates config without database execution.
 - `sdb attack concurrency --execute --output report.json` is wired to the asyncpg Concurrency Scenario MVP; current Python 3.13 runtime cannot verify it because `pgserver` is unavailable.
 - `DataWraith.spec` and `.github/workflows/executable.yml` provide a Windows PyInstaller artifact path; pip remains the primary distribution.
-- `sdb compare baseline.json current.json` compares JSON reports for health score, QPS, p95/p99, and error rate.
+- `sdb compare baseline.json current.json` compares JSON reports for health score, QPS, p95/p99, and error rate; `--json` emits machine-readable deltas.
+- `sdb attack --all --execute --output-dir reports/` is wired to run concurrency and rw-heavy sequentially and write per-scenario JSON reports; current Python 3.13 runtime cannot verify it because `pgserver` is unavailable.
 - `sdb attack rw-heavy --execute --output rw-heavy.json` is wired to a self-contained ShadowDB workload that prepares product/customer/order seed tables and runs mixed SELECT/INSERT/UPDATE operations; current Python 3.13 runtime cannot verify it because `pgserver` is unavailable.
 - `sdb attack rw-heavy --dry-run` validates the Phase 2 config without database execution.
 - `sdb doctor --json` returns machine-readable health checks for automation.

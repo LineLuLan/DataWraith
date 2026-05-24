@@ -104,6 +104,7 @@ Build slices:
      sdb attack rw-heavy --execute --output rw-heavy.json
      sdb attack --all --execute --output-dir reports/
      ```
+   - Status: `--all` and `--output-dir` are implemented; real DB E2E remains pgserver-gated.
    - Ensure non-zero exits on failed scenarios.
    - Keep JSON report stable.
 
@@ -114,6 +115,7 @@ Build slices:
      ```
    - Compare health score, QPS, p95/p99, error rate, and top culprits.
    - Output console summary and optional JSON.
+   - Status: console and `--json` output are implemented.
 
 6. **PyInstaller executable**
    - Add build workflow for Windows executable.

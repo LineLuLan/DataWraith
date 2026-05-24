@@ -71,7 +71,7 @@ class DataWraithApp(App[None]):
         with Container(id="layout"):
             with Container(classes="card", id="status-card"):
                 yield Static("DataWraith", id="title")
-                yield Static(f"sdb v{__version__} - Phase 1 alpha")
+                yield Static(f"sdb v{__version__} - Phase 1/2 alpha")
                 yield Static("\n".join(runtime_status_lines()), id="runtime-status")
             with Container(classes="card", id="attack-card"):
                 yield Static("Concurrency Test", id="attack-title")
@@ -90,11 +90,32 @@ class DataWraithApp(App[None]):
                     classes="command",
                     id="attack-execute-command",
                 )
+            with Container(classes="card", id="rw-heavy-card"):
+                yield Static("RW-heavy Test", id="rw-heavy-title")
+                yield Static(
+                    "Phase 2 mixed SELECT/INSERT/UPDATE workload. Execute requires Python 3.12 + pgserver.",
+                    id="rw-heavy-muted",
+                )
+                yield Static(
+                    "sdb attack rw-heavy --dry-run --row-count 10 --operations 20",
+                    classes="command",
+                    id="rw-heavy-command",
+                )
+                yield Static(
+                    "sdb attack --all --execute --output-dir reports/",
+                    classes="command",
+                    id="attack-all-command",
+                )
             with Container(classes="card", id="report-card"):
                 yield Static("Report Summary", id="report-title")
                 yield Static(
                     "No report loaded yet. Run the execute command above to generate JSON.",
                     id="report-summary",
+                )
+                yield Static(
+                    "Compare reports: sdb compare baseline.json current.json",
+                    classes="command",
+                    id="compare-command",
                 )
         yield Footer()
 

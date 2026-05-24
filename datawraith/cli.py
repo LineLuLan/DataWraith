@@ -213,9 +213,9 @@ def seed(
 @app.command()
 def attack(
     scenario: Annotated[
-        str,
+        str | None,
         typer.Argument(help="Scenario name. Supports concurrency and rw-heavy."),
-    ],
+    ] = None,
     duration: Annotated[int, typer.Option("--duration", help="Duration in seconds.")] = 10,
     workers: Annotated[int, typer.Option("--workers", help="Concurrent worker count.")] = 10,
     concurrent_updates: Annotated[
@@ -241,6 +241,14 @@ def attack(
         typer.Option("--slow-ms", help="RW-heavy slow query threshold in milliseconds."),
     ] = 100.0,
     output: Annotated[Path | None, typer.Option("--output", "-o", help="JSON report path.")] = None,
+    output_dir: Annotated[
+        Path | None,
+        typer.Option("--output-dir", help="Directory for --all JSON reports."),
+    ] = None,
+    run_all: Annotated[
+        bool,
+        typer.Option("--all", help="Run all implemented scenarios sequentially."),
+    ] = False,
     dry_run: Annotated[
         bool,
         typer.Option("--dry-run", help="Validate config without starting embedded PostgreSQL."),
@@ -255,43 +263,64 @@ def attack(
     ] = None,
 ) -> None:
     """Validate or execute an attack scenario."""
-    if scenario not in {"concurrency", "rw-heavy"}:
-        typer.echo("Unknown scenario. Available: concurrency, rw-heavy", err=True)
-        raise typer.Exit(code=1)
-    if output is not None and not execute:
-        typer.echo("--output requires --execute because dry-run does not produce a report.", err=True)
-        raise typer.Exit(code=1)
-
     try:
-        config = _build_attack_config(
-            scenario=scenario,
-            duration=duration,
-            workers=workers,
-            concurrent_updates=concurrent_updates,
-            target_table=target_table,
-            target_column=target_column,
-            read_ratio=read_ratio,
-            row_count=row_count,
-            operation_limit=operation_limit,
-            slow_query_threshold_ms=slow_query_threshold_ms,
-        )
-    except ValueError as exc:
-        typer.echo(f"Invalid {scenario} config: {exc}", err=True)
+        selected_scenarios = _select_attack_scenarios(scenario=scenario, run_all=run_all)
+    except DataWraithError as exc:
+        typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
+    if output is not None and len(selected_scenarios) > 1:
+        typer.echo("--output is only valid for a single scenario; use --output-dir with --all.", err=True)
+        raise typer.Exit(code=1)
+    if output_dir is not None and len(selected_scenarios) == 1:
+        typer.echo("--output-dir is only valid with --all.", err=True)
+        raise typer.Exit(code=1)
+    if (output is not None or output_dir is not None) and not execute:
+        typer.echo(
+            "--output/--output-dir requires --execute because dry-run does not produce a report.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
 
-    typer.echo(f"Scenario: {scenario}")
-    typer.echo(f"Config: {config.model_dump(mode='json')}")
+    configs: dict[str, ScenarioConfig] = {}
+    for selected_scenario in selected_scenarios:
+        try:
+            configs[selected_scenario] = _build_attack_config(
+                scenario=selected_scenario,
+                duration=duration,
+                workers=workers,
+                concurrent_updates=concurrent_updates,
+                target_table=target_table,
+                target_column=target_column,
+                read_ratio=read_ratio,
+                row_count=row_count,
+                operation_limit=operation_limit,
+                slow_query_threshold_ms=slow_query_threshold_ms,
+            )
+        except ValueError as exc:
+            typer.echo(f"Invalid {selected_scenario} config: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+
+    for selected_scenario, config in configs.items():
+        typer.echo(f"Scenario: {selected_scenario}")
+        typer.echo(f"Config: {config.model_dump(mode='json')}")
+
     if execute:
         target_data_dir = data_dir or get_settings().shadow_data_dir
-        try:
-            result = asyncio.run(_execute_attack(scenario, config, target_data_dir))
-        except DataWraithError as exc:
-            typer.echo(f"Attack failed: {exc}", err=True)
-            raise typer.Exit(code=1) from exc
-        typer.echo(render_result(result))
-        if output is not None:
-            JSONExporter().export(result, output)
-            typer.echo(f"Report written: {output}")
+        for selected_scenario, config in configs.items():
+            try:
+                result = asyncio.run(_execute_attack(selected_scenario, config, target_data_dir))
+            except DataWraithError as exc:
+                typer.echo(f"Attack failed: {exc}", err=True)
+                raise typer.Exit(code=1) from exc
+            typer.echo(render_result(result))
+            report_path = _report_path_for(
+                scenario=selected_scenario,
+                output=output,
+                output_dir=output_dir,
+            )
+            if report_path is not None:
+                JSONExporter().export(result, report_path)
+                typer.echo(f"Report written: {report_path}")
         return
 
     if dry_run:
@@ -302,6 +331,10 @@ def attack(
 def compare(
     baseline: Annotated[Path, typer.Argument(help="Baseline JSON report path.")],
     current: Annotated[Path, typer.Argument(help="Current JSON report path.")],
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Emit machine-readable comparison JSON."),
+    ] = False,
 ) -> None:
     """Compare two DataWraith JSON reports."""
     try:
@@ -310,7 +343,35 @@ def compare(
         typer.echo(f"Compare failed: {exc}", err=True)
         raise typer.Exit(code=1) from exc
 
-    typer.echo(render_comparison(comparison))
+    if json_output:
+        typer.echo(json.dumps(comparison.model_dump(mode="json"), indent=2))
+    else:
+        typer.echo(render_comparison(comparison))
+
+
+def _select_attack_scenarios(*, scenario: str | None, run_all: bool) -> list[str]:
+    if run_all and scenario is not None:
+        raise DataWraithError("Use either a scenario argument or --all, not both.")
+    if run_all:
+        return ["concurrency", "rw-heavy"]
+    if scenario is None:
+        raise DataWraithError("Provide a scenario or pass --all. Available: concurrency, rw-heavy")
+    if scenario not in {"concurrency", "rw-heavy"}:
+        raise DataWraithError("Unknown scenario. Available: concurrency, rw-heavy")
+    return [scenario]
+
+
+def _report_path_for(
+    *,
+    scenario: str,
+    output: Path | None,
+    output_dir: Path | None,
+) -> Path | None:
+    if output is not None:
+        return output
+    if output_dir is not None:
+        return output_dir / f"{scenario}.json"
+    return None
 
 
 def _build_attack_config(

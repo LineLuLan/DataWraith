@@ -35,6 +35,9 @@ Phase 1 foundation and Phase 2 RW-heavy MVP are implemented in unit-tested code 
 - Rule-based slow-query analyzer produces `top_culprits` hints from observed slow query samples
 - RW-heavy workload prepares local product/customer/order seed tables and runs mixed SELECT/INSERT/UPDATE workers
 - Phase 2 `rw-heavy` scenario registered as `sdb attack rw-heavy`
+- `sdb attack --all --execute --output-dir reports/` runs implemented scenarios sequentially and writes per-scenario reports
+- `sdb compare --json` emits machine-readable report deltas
+- Minimal TUI now shows RW-heavy, attack-all, and compare command hints
 
 ## Next
 

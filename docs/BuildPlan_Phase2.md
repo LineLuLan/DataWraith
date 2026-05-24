@@ -40,6 +40,7 @@ Public CLI:
 
 ```bash
 sdb attack rw-heavy --dry-run --row-count 10 --operations 20
+sdb attack --all --dry-run --row-count 10 --operations 20
 ```
 
 ## Slice 2 - Workload MVP
@@ -129,6 +130,7 @@ pytest
 python -m build
 mkdocs build --strict
 sdb attack rw-heavy --dry-run --row-count 10 --operations 20
+sdb attack --all --dry-run --row-count 10 --operations 20
 ```
 
 Run only on Python 3.12 with `pgserver` available:
@@ -136,12 +138,13 @@ Run only on Python 3.12 with `pgserver` available:
 ```bash
 sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output rw-heavy.json
 sdb compare rw-heavy.json rw-heavy.json
+sdb compare rw-heavy.json rw-heavy.json --json
 python -m json.tool rw-heavy.json
 ```
 
 ## Remaining work after this slice
 
 - Real Python 3.12 + `pgserver` E2E verification for Phase 1 and Phase 2.
-- Optional `sdb attack --all --execute --output-dir reports/`.
+- `sdb attack --all --execute --output-dir reports/` implemented; real DB verification still gated on Python 3.12 + `pgserver`.
 - Interactive TUI screen for RW-heavy configuration and report summary.
 - EXPLAIN-based analyzer once query collection is proven safe and fast.
