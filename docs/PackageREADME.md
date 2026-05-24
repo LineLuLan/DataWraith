@@ -34,6 +34,8 @@ instance.
 python -m pip install -e ".[dev]"
 sdb --version
 sdb doctor
+sdb recipes
+sdb quickstart
 pytest
 ruff check .
 mypy datawraith
@@ -59,6 +61,9 @@ sdb                 # open the Textual TUI
 sdb --version       # show package version
 sdb doctor          # local environment health check
 sdb doctor --json   # machine-readable health check
+sdb recipes         # copy-paste command recipes
+sdb quickstart      # guided dry-run tour
+sdb quickstart --execute --output-dir reports
 sdb init schema.sql # parse schema dry-run
 sdb init schema.sql --execute --database-url postgresql://localhost/datawraith
 sdb seed --table products --column id:int --column name:name --rows 10

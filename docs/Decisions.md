@@ -83,3 +83,13 @@ Reason: long-form project memory still belongs in `docs/`, but GitHub needs a
 root README for discoverability. The Docker/CI fallback gives contributors a
 repeatable way to test Phase 1-4 execute paths without waiting on Python 3.12
 embedded `pgserver` availability.
+
+
+## 2026-05-24 - Add recipe and quickstart UX shortcuts
+
+Decision: add `sdb recipes` and `sdb quickstart` as first-class CLI commands,
+and surface them at the top of the TUI.
+
+Reason: scenario syntax is powerful but too long for first-time users to
+memorize. Copy-paste recipes and a safe smoke-flow command reduce activation
+friction without hiding the underlying expert commands.

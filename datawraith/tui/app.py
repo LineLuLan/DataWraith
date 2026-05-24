@@ -11,17 +11,33 @@ from textual.widgets import Footer, Header, Static
 
 from datawraith import __version__
 from datawraith.core.config import get_settings
+from datawraith.core.database_url import validate_local_database_url
+from datawraith.core.exceptions import DataWraithError
 from datawraith.tui import theme
 
 
 def runtime_status_lines() -> list[str]:
     """Return human-readable local runtime status lines."""
+    settings = get_settings()
     pgserver_available = importlib.util.find_spec("pgserver") is not None
-    pgserver_status = "available" if pgserver_available else "unavailable; use Python 3.12"
+    database_url_status = "not configured"
+    if settings.database_url:
+        try:
+            validate_local_database_url(settings.database_url)
+        except DataWraithError:
+            database_url_status = "invalid/non-local"
+        else:
+            database_url_status = "configured"
+    pgserver_status = (
+        "available"
+        if pgserver_available
+        else "unavailable; use Python 3.12 or local PostgreSQL fallback"
+    )
     return [
         f"Python: {sys.version.split()[0]}",
         f"pgserver: {pgserver_status}",
-        f"ShadowDB: {get_settings().shadow_data_dir}",
+        f"database_url: {database_url_status}",
+        f"ShadowDB: {settings.shadow_data_dir}",
     ]
 
 
@@ -71,8 +87,20 @@ class DataWraithApp(App[None]):
         with Container(id="layout"):
             with Container(classes="card", id="status-card"):
                 yield Static("DataWraith", id="title")
-                yield Static(f"sdb v{__version__} - Phase 1/2 alpha")
+                yield Static(f"sdb v{__version__} - v1 local test readiness")
                 yield Static("\n".join(runtime_status_lines()), id="runtime-status")
+            with Container(classes="card", id="quickstart-card"):
+                yield Static("No syntax memorization", id="quickstart-title")
+                yield Static(
+                    "Start here: recipes prints copy-paste commands; quickstart runs the v1 smoke flow.",
+                    id="quickstart-muted",
+                )
+                yield Static("sdb recipes", classes="command", id="recipes-command")
+                yield Static(
+                    "sdb quickstart --execute --output-dir reports",
+                    classes="command",
+                    id="quickstart-command",
+                )
             with Container(classes="card", id="attack-card"):
                 yield Static("Concurrency Test", id="attack-title")
                 yield Static(

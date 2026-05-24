@@ -60,6 +60,10 @@ users now have a safe local PostgreSQL fallback through `--database-url` or
   contributors without Python 3.12/`pgserver`
 - CI includes a PostgreSQL service E2E job that runs Phase 1-4 execute flows on
   Python 3.13 through `DATAWRAITH_E2E_DATABASE_URL`
+- `sdb recipes` prints copy-pasteable commands for common workflows
+- `sdb quickstart` provides a guided dry-run and `sdb quickstart --execute`
+  runs the v1 smoke flow with safe defaults
+- TUI now highlights recipes/quickstart first to reduce syntax memorization
 
 ## Next
 
@@ -67,4 +71,5 @@ users now have a safe local PostgreSQL fallback through `--database-url` or
 - Verify `sdb seed --execute` on Python 3.12 with `pgserver` available.
 - Verify all attack execute flows on Python 3.12 embedded mode.
 - Confirm GitHub Actions PostgreSQL fallback E2E passes on PR #6.
-- Expand TUI from command-hint dashboard into interactive init/seed/attack screens.
+- Expand TUI from command-hint dashboard into interactive forms/buttons for
+  init/seed/attack screens.

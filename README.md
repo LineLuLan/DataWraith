@@ -13,7 +13,8 @@ database operations away from production by default.
 ```bash
 python -m pip install -e ".[dev]"
 sdb doctor
-sdb attack concurrency --dry-run
+sdb recipes
+sdb quickstart
 ```
 
 ## What v1 can test
@@ -45,9 +46,7 @@ sdb doctor
 Then run the v1 smoke flow:
 
 ```bash
-sdb init tests/fixtures/sample_schema.sql --execute
-sdb seed --table products --column id:int --column name:name --column stock:int --rows 10 --execute
-sdb attack --all --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output-dir reports/
+sdb quickstart --execute --output-dir reports
 sdb compare reports/concurrency.json reports/rw-heavy.json
 sdb ai analyze reports/migration.json --json
 sdb report reports/security.json --format sarif --output reports/security.sarif
@@ -57,6 +56,16 @@ sdb report reports/security.json --format pdf --output reports/security.pdf
 
 DataWraith rejects non-local PostgreSQL URLs by default. Do **not** point it at
 production databases.
+
+## UX shortcuts
+
+If you forget syntax, use:
+
+```bash
+sdb recipes     # copy-pasteable commands
+sdb quickstart  # guided v1 smoke flow
+sdb             # TUI dashboard with command hints
+```
 
 ## Developer checks
 
