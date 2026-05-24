@@ -38,3 +38,14 @@ tests skipped unless `pgserver` is available.
 Reason: the user explicitly approved continuing auto-build work, but the local
 runtime still cannot install/start `pgserver`. Unit tests and dry-runs keep the
 new contracts healthy without falsely claiming real DB verification.
+
+
+## 2026-05-24 - Keep Phase 3 AI offline-first until provider calls are safe
+
+Decision: implement BYOK setup/status and `sdb ai analyze` with deterministic
+rule-based migration suggestions first, while deferring provider-backed network
+AI enrichment.
+
+Reason: Phase 3 should establish a stable advisory contract without exposing
+keys, adding telemetry, or making unverified external calls. Suggestions remain
+human-reviewed and are never auto-applied.

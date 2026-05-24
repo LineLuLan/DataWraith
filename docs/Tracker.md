@@ -37,7 +37,11 @@ Phase 1 foundation and Phase 2 RW-heavy MVP are implemented in unit-tested code 
 - Phase 2 `rw-heavy` scenario registered as `sdb attack rw-heavy`
 - `sdb attack --all --execute --output-dir reports/` runs implemented scenarios sequentially and writes per-scenario reports
 - `sdb compare --json` emits machine-readable report deltas
-- Minimal TUI now shows RW-heavy, attack-all, and compare command hints
+- Minimal TUI now shows RW-heavy, attack-all, migration, AI analyze, and compare command hints
+- Phase 3 `migration` scenario registered as `sdb attack migration`
+- Migration scenario runs local DDL-under-load simulation with lock/statement timeout settings
+- Rule-based migration analyzer emits `AISuggestion` records without applying SQL
+- `sdb ai setup/status/analyze` BYOK advisory CLI added with OS keyring storage and offline rule-based fallback
 
 ## Next
 
@@ -45,4 +49,5 @@ Phase 1 foundation and Phase 2 RW-heavy MVP are implemented in unit-tested code 
 - Verify `sdb seed --execute` on Python 3.12 with `pgserver` available.
 - Verify `sdb attack concurrency --execute --output report.json` on Python 3.12 with `pgserver` available.
 - Verify `sdb attack rw-heavy --execute --output rw-heavy.json` on Python 3.12 with `pgserver` available.
+- Verify `sdb attack migration --execute --output migration.json` on Python 3.12 with `pgserver` available.
 - Expand TUI from command-hint dashboard into interactive init/seed/attack screens.

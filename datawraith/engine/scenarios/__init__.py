@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from datawraith.engine.scenarios.base import Scenario
 from datawraith.engine.scenarios.concurrency import ConcurrencyScenario
+from datawraith.engine.scenarios.migration import MigrationScenario
 from datawraith.engine.scenarios.rw_heavy import RWHeavyScenario
 
 SCENARIO_REGISTRY: dict[str, type[Scenario]] = {
     ConcurrencyScenario.name: ConcurrencyScenario,
+    MigrationScenario.name: MigrationScenario,
     RWHeavyScenario.name: RWHeavyScenario,
 }
 

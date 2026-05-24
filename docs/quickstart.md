@@ -28,6 +28,7 @@ Phase 2 dry-run and report comparison:
 ```bash
 sdb attack rw-heavy --dry-run --row-count 10 --operations 20
 sdb attack --all --dry-run --row-count 10 --operations 20
+sdb attack migration --dry-run --migration-operation add_column
 sdb compare baseline.json current.json
 sdb compare baseline.json current.json --json
 ```
@@ -41,4 +42,6 @@ sdb seed --table products --column id:int --column name:name --column stock:int 
 sdb attack concurrency --execute --duration 10 --workers 2 --updates 10 --output report.json
 sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output rw-heavy.json
 sdb attack --all --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output-dir reports/
+sdb attack migration --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output migration.json
+sdb ai analyze migration.json --provider openai
 ```
