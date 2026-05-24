@@ -161,6 +161,7 @@ def test_attack_all_dry_run_lists_configs() -> None:
     assert "Scenario: concurrency" in result.output
     assert "Scenario: rw-heavy" in result.output
     assert "Scenario: migration" in result.output
+    assert "Scenario: security" in result.output
 
 
 def test_attack_all_rejects_single_output_path(tmp_path) -> None:  # type: ignore[no-untyped-def]
@@ -182,6 +183,7 @@ def test_attack_all_execute_writes_output_dir(tmp_path, monkeypatch) -> None:  #
             "concurrency": ScenarioType.CONCURRENCY,
             "rw-heavy": ScenarioType.RW_HEAVY,
             "migration": ScenarioType.MIGRATION,
+            "security": ScenarioType.SECURITY,
         }[scenario]
         return ScenarioResult(
             scenario_name=scenario,
@@ -221,10 +223,11 @@ def test_attack_all_execute_writes_output_dir(tmp_path, monkeypatch) -> None:  #
     )
 
     assert result.exit_code == 0
-    assert calls == ["concurrency:shadow", "rw-heavy:shadow", "migration:shadow"]
+    assert calls == ["concurrency:shadow", "rw-heavy:shadow", "migration:shadow", "security:shadow"]
     assert (reports_dir / "concurrency.json").exists()
     assert (reports_dir / "rw-heavy.json").exists()
     assert (reports_dir / "migration.json").exists()
+    assert (reports_dir / "security.json").exists()
 
 
 def test_attack_migration_dry_run() -> None:
@@ -246,6 +249,27 @@ def test_attack_migration_dry_run() -> None:
     assert result.exit_code == 0
     assert "Scenario: migration" in result.output
     assert "phase3_flag" in result.output
+
+
+def test_attack_security_dry_run() -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "attack",
+            "security",
+            "--dry-run",
+            "--tenants",
+            "2",
+            "--rows-per-tenant",
+            "2",
+            "--fuzz-payloads",
+            "2",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Scenario: security" in result.output
+    assert "dw_security_records" in result.output
 
 
 def test_attack_output_requires_execute(tmp_path) -> None:  # type: ignore[no-untyped-def]
@@ -395,6 +419,39 @@ def test_compare_command_json_output(tmp_path) -> None:  # type: ignore[no-untyp
     data = json.loads(result.output)
     assert data["baseline_scenario"] == "concurrency"
     assert data["deltas"][0]["name"] == "health_score"
+
+
+def test_report_command_exports_sarif(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    report = ScenarioResult(
+        scenario_name="security",
+        scenario_type=ScenarioType.SECURITY,
+        config={},
+        started_at=datetime(2026, 5, 24, 12, 0, 0),
+        completed_at=datetime(2026, 5, 24, 12, 0, 1),
+        duration_seconds=1.0,
+        health_score=100,
+        metrics=HealthMetrics(
+            qps_max=1.0,
+            qps_avg=1.0,
+            latency_p50_ms=0.0,
+            latency_p95_ms=0.0,
+            latency_p99_ms=0.0,
+            error_count=0,
+            error_rate=0.0,
+        ),
+    )
+    report_path = tmp_path / "security.json"
+    output_path = tmp_path / "security.sarif"
+    report_path.write_text(json.dumps(report.model_dump(mode="json")), encoding="utf-8")
+
+    result = CliRunner().invoke(
+        app,
+        ["report", str(report_path), "--format", "sarif", "--output", str(output_path)],
+    )
+
+    assert result.exit_code == 0
+    assert output_path.exists()
+    assert json.loads(output_path.read_text(encoding="utf-8"))["version"] == "2.1.0"
 
 
 def test_ai_analyze_outputs_rule_based_suggestions(tmp_path) -> None:  # type: ignore[no-untyped-def]

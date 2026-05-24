@@ -21,6 +21,8 @@
 - `sdb attack --all --execute --output-dir reports/` runs implemented scenarios sequentially and writes one JSON report per scenario.
 - `sdb compare baseline.json current.json` validates two `ScenarioResult` JSON reports and compares health score, QPS, p95/p99 latency, and error rate; `--json` emits machine-readable deltas.
 - AI advisory is offline-first in Phase 3: OS keyring BYOK setup, deterministic rule-based migration suggestions, no network call, and no auto-applied SQL.
+- Security Scenario prepares local multi-tenant fixtures, checks RLS/tenant isolation, runs parameterized SQL injection fuzzing, and reports security findings.
+- `sdb report` exports JSON reports to SARIF, JUnit XML, and minimal PDF formats for CI/security workflows.
 - TUI currently acts as a command dashboard: runtime status, default ShadowDB path, scenario command hints, compare hints, and a report placeholder.
 
 ## Embedded PostgreSQL
