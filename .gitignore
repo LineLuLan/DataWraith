@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.pytest-tmp/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+site/
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# DataWraith local runtime
+.datawraith/
+*.log
+*.jsonl
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
