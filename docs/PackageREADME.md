@@ -54,6 +54,10 @@ sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 100 --operat
 sdb compare report.json rw-heavy.json
 sdb compare report.json rw-heavy.json --json
 sdb attack --all --execute --output-dir reports/
+sdb attack migration --dry-run --migration-operation add_column
+sdb ai analyze migration.json --provider openai
+sdb attack security --dry-run
+sdb report security.json --format sarif --output security.sarif
 python -m datawraith --version
 ```
 

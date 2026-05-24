@@ -7,20 +7,23 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, cast
 
 import typer
 
 from datawraith import __version__
+from datawraith.ai.advisor import analyze_report, has_api_key, store_api_key
 from datawraith.core.config import get_settings
 from datawraith.core.exceptions import DataWraithError
 from datawraith.core.shadow_db import ShadowDB
 from datawraith.core.types import (
     ConcurrencyConfig,
     EventType,
+    MigrationConfig,
     RWHeavyConfig,
     ScenarioConfig,
     ScenarioResult,
+    SecurityConfig,
 )
 from datawraith.engine.runner import run_scenario
 from datawraith.engine.schema_parser import parse_schema
@@ -33,6 +36,7 @@ from datawraith.engine.seeder import (
 from datawraith.output.ascii_renderer import render_result
 from datawraith.output.comparator import compare_results, load_result, render_comparison
 from datawraith.output.json_exporter import JSONExporter
+from datawraith.output.report_exporter import ReportFormat, export_report
 
 app = typer.Typer(
     name="sdb",
@@ -42,6 +46,12 @@ app = typer.Typer(
     pretty_exceptions_show_locals=False,
     rich_markup_mode="rich",
 )
+ai_app = typer.Typer(
+    name="ai",
+    help="Optional BYOK advisory commands. Offline rules are always available.",
+    rich_markup_mode="rich",
+)
+app.add_typer(ai_app, name="ai")
 
 
 def _version_callback(value: bool) -> None:
@@ -214,7 +224,7 @@ def seed(
 def attack(
     scenario: Annotated[
         str | None,
-        typer.Argument(help="Scenario name. Supports concurrency and rw-heavy."),
+        typer.Argument(help="Scenario name. Supports concurrency, rw-heavy, migration, and security."),
     ] = None,
     duration: Annotated[int, typer.Option("--duration", help="Duration in seconds.")] = 10,
     workers: Annotated[int, typer.Option("--workers", help="Concurrent worker count.")] = 10,
@@ -240,6 +250,34 @@ def attack(
         float,
         typer.Option("--slow-ms", help="RW-heavy slow query threshold in milliseconds."),
     ] = 100.0,
+    migration_operation: Annotated[
+        str,
+        typer.Option("--migration-operation", help="Migration operation: add_column or create_index."),
+    ] = "add_column",
+    lock_timeout_ms: Annotated[
+        int,
+        typer.Option("--lock-timeout-ms", help="Migration lock timeout in milliseconds."),
+    ] = 500,
+    statement_timeout_ms: Annotated[
+        int,
+        typer.Option("--statement-timeout-ms", help="Migration statement timeout in milliseconds."),
+    ] = 5000,
+    hold_lock_ms: Annotated[
+        int,
+        typer.Option("--hold-lock-ms", help="Migration test-only lock hold in milliseconds."),
+    ] = 0,
+    tenants: Annotated[
+        int,
+        typer.Option("--tenants", help="Security scenario tenant count."),
+    ] = 3,
+    rows_per_tenant: Annotated[
+        int,
+        typer.Option("--rows-per-tenant", help="Security scenario rows per tenant."),
+    ] = 10,
+    fuzz_payload_limit: Annotated[
+        int,
+        typer.Option("--fuzz-payloads", help="Security scenario SQL injection fuzz payload limit."),
+    ] = 8,
     output: Annotated[Path | None, typer.Option("--output", "-o", help="JSON report path.")] = None,
     output_dir: Annotated[
         Path | None,
@@ -295,6 +333,13 @@ def attack(
                 row_count=row_count,
                 operation_limit=operation_limit,
                 slow_query_threshold_ms=slow_query_threshold_ms,
+                migration_operation=migration_operation,
+                lock_timeout_ms=lock_timeout_ms,
+                statement_timeout_ms=statement_timeout_ms,
+                hold_lock_ms=hold_lock_ms,
+                tenants=tenants,
+                rows_per_tenant=rows_per_tenant,
+                fuzz_payload_limit=fuzz_payload_limit,
             )
         except ValueError as exc:
             typer.echo(f"Invalid {selected_scenario} config: {exc}", err=True)
@@ -349,15 +394,102 @@ def compare(
         typer.echo(render_comparison(comparison))
 
 
+@app.command()
+def report(
+    report_path: Annotated[Path, typer.Argument(help="Scenario JSON report path.")],
+    report_format: Annotated[
+        str,
+        typer.Option("--format", help="Report format: sarif, junit, or pdf."),
+    ],
+    output: Annotated[Path, typer.Option("--output", "-o", help="Output report path.")],
+) -> None:
+    """Export a DataWraith JSON report to CI/security-friendly formats."""
+    normalized_format = report_format.strip().lower()
+    if normalized_format not in {"sarif", "junit", "pdf"}:
+        typer.echo("Unsupported report format. Available: sarif, junit, pdf", err=True)
+        raise typer.Exit(code=1)
+    try:
+        result = load_result(report_path)
+        export_report(result, output, cast(ReportFormat, normalized_format))
+    except DataWraithError as exc:
+        typer.echo(f"Report export failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(f"Report written: {output}")
+
+
+@ai_app.command("setup")
+def ai_setup(
+    provider: Annotated[str, typer.Option("--provider", help="AI provider name.")] = "openai",
+    api_key: Annotated[
+        str,
+        typer.Option("--api-key", prompt=True, hide_input=True, help="Provider API key."),
+    ] = "",
+) -> None:
+    """Store an optional BYOK provider key in the OS keyring."""
+    try:
+        store_api_key(provider, api_key)
+    except DataWraithError as exc:
+        typer.echo(f"AI setup failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(f"Stored {provider.strip().lower()} API key in OS keyring.")
+
+
+@ai_app.command("status")
+def ai_status(
+    provider: Annotated[str, typer.Option("--provider", help="AI provider name.")] = "openai",
+) -> None:
+    """Show whether a BYOK provider key is configured."""
+    try:
+        configured = has_api_key(provider)
+    except DataWraithError as exc:
+        typer.echo(f"AI status failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    state = "configured" if configured else "not configured"
+    typer.echo(f"{provider.strip().lower()}: {state}")
+
+
+@ai_app.command("analyze")
+def ai_analyze(
+    report_path: Annotated[Path, typer.Argument(help="Scenario JSON report path.")],
+    provider: Annotated[
+        str | None,
+        typer.Option("--provider", help="Optional BYOK provider for future AI enrichment."),
+    ] = None,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Emit machine-readable suggestions."),
+    ] = False,
+) -> None:
+    """Analyze a scenario report with offline rules and optional BYOK metadata."""
+    try:
+        suggestions = analyze_report(report_path, provider)
+    except DataWraithError as exc:
+        typer.echo(f"AI analyze failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    if json_output:
+        typer.echo(json.dumps([item.model_dump(mode="json") for item in suggestions], indent=2))
+        return
+
+    for index, suggestion in enumerate(suggestions, start=1):
+        typer.echo(f"{index}. [{suggestion.risk_level}] {suggestion.reasoning}")
+        if suggestion.sql_fix:
+            typer.echo(f"   SQL: {suggestion.sql_fix}")
+        if suggestion.rollback_plan:
+            typer.echo(f"   Rollback: {suggestion.rollback_plan}")
+
+
 def _select_attack_scenarios(*, scenario: str | None, run_all: bool) -> list[str]:
     if run_all and scenario is not None:
         raise DataWraithError("Use either a scenario argument or --all, not both.")
     if run_all:
-        return ["concurrency", "rw-heavy"]
+        return ["concurrency", "rw-heavy", "migration", "security"]
     if scenario is None:
-        raise DataWraithError("Provide a scenario or pass --all. Available: concurrency, rw-heavy")
-    if scenario not in {"concurrency", "rw-heavy"}:
-        raise DataWraithError("Unknown scenario. Available: concurrency, rw-heavy")
+        raise DataWraithError(
+            "Provide a scenario or pass --all. Available: concurrency, rw-heavy, migration, security"
+        )
+    if scenario not in {"concurrency", "rw-heavy", "migration", "security"}:
+        raise DataWraithError("Unknown scenario. Available: concurrency, rw-heavy, migration, security")
     return [scenario]
 
 
@@ -386,6 +518,13 @@ def _build_attack_config(
     row_count: int,
     operation_limit: int,
     slow_query_threshold_ms: float,
+    migration_operation: str,
+    lock_timeout_ms: int,
+    statement_timeout_ms: int,
+    hold_lock_ms: int,
+    tenants: int,
+    rows_per_tenant: int,
+    fuzz_payload_limit: int,
 ) -> ScenarioConfig:
     if scenario == "concurrency":
         return ConcurrencyConfig(
@@ -395,13 +534,36 @@ def _build_attack_config(
             target_table=target_table,
             target_column=target_column,
         )
-    return RWHeavyConfig(
+    if scenario == "rw-heavy":
+        return RWHeavyConfig(
+            duration_seconds=duration,
+            workers=workers,
+            read_write_ratio=read_ratio,
+            row_count=row_count,
+            operation_limit=operation_limit,
+            slow_query_threshold_ms=slow_query_threshold_ms,
+        )
+    if scenario == "security":
+        return SecurityConfig(
+            duration_seconds=duration,
+            workers=workers,
+            tenants=tenants,
+            rows_per_tenant=rows_per_tenant,
+            fuzz_payload_limit=fuzz_payload_limit,
+        )
+    migration_table = "dw_migration_items" if target_table == "products" else target_table
+    migration_column = "phase3_flag" if target_column == "stock" else target_column
+    return MigrationConfig(
         duration_seconds=duration,
         workers=workers,
-        read_write_ratio=read_ratio,
+        target_table=migration_table,
+        target_column=migration_column,
+        migration_operation=migration_operation,  # type: ignore[arg-type]
         row_count=row_count,
         operation_limit=operation_limit,
-        slow_query_threshold_ms=slow_query_threshold_ms,
+        lock_timeout_ms=lock_timeout_ms,
+        statement_timeout_ms=statement_timeout_ms,
+        hold_lock_ms=hold_lock_ms,
     )
 
 

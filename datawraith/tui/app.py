@@ -106,6 +106,38 @@ class DataWraithApp(App[None]):
                     classes="command",
                     id="attack-all-command",
                 )
+            with Container(classes="card", id="migration-card"):
+                yield Static("Migration Lock Test", id="migration-title")
+                yield Static(
+                    "Phase 3 local DDL-under-load simulation. AI advice is BYOK and never auto-applied.",
+                    id="migration-muted",
+                )
+                yield Static(
+                    "sdb attack migration --dry-run --migration-operation add_column",
+                    classes="command",
+                    id="migration-command",
+                )
+                yield Static(
+                    "sdb ai analyze migration.json --provider openai",
+                    classes="command",
+                    id="ai-analyze-command",
+                )
+            with Container(classes="card", id="security-card"):
+                yield Static("Security & Isolation Test", id="security-title")
+                yield Static(
+                    "Phase 4 local tenant isolation, RLS, injection fuzz, and report exports.",
+                    id="security-muted",
+                )
+                yield Static(
+                    "sdb attack security --dry-run",
+                    classes="command",
+                    id="security-command",
+                )
+                yield Static(
+                    "sdb report security.json --format sarif --output security.sarif",
+                    classes="command",
+                    id="report-export-command",
+                )
             with Container(classes="card", id="report-card"):
                 yield Static("Report Summary", id="report-title")
                 yield Static(

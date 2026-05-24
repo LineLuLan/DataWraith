@@ -72,6 +72,32 @@ class RWHeavyConfig(ScenarioConfig):
     use_multi_join: bool = True
 
 
+class MigrationConfig(ScenarioConfig):
+    """Phase 3 migration-lock scenario config."""
+
+    target_table: str = Field(default="dw_migration_items", min_length=1)
+    target_column: str = Field(default="phase3_flag", min_length=1)
+    migration_operation: Literal["add_column", "create_index"] = "add_column"
+    row_count: int = Field(default=100, ge=10, le=1_000_000)
+    operation_limit: int = Field(default=500, ge=1, le=10_000_000)
+    lock_timeout_ms: int = Field(default=500, ge=50, le=60_000)
+    statement_timeout_ms: int = Field(default=5_000, ge=100, le=300_000)
+    hold_lock_ms: int = Field(default=0, ge=0, le=60_000)
+
+
+class SecurityConfig(ScenarioConfig):
+    """Phase 4 security and isolation scenario config."""
+
+    tenants: int = Field(default=3, ge=2, le=100)
+    rows_per_tenant: int = Field(default=10, ge=1, le=10_000)
+    records_table: str = Field(default="dw_security_records", min_length=1)
+    tenants_table: str = Field(default="dw_security_tenants", min_length=1)
+    users_table: str = Field(default="dw_security_users", min_length=1)
+    fuzz_payload_limit: int = Field(default=8, ge=1, le=100)
+    check_privileges: bool = True
+    enforce_rls: bool = True
+
+
 class ScenarioEvent(BaseModel):
     """Event streamed from a scenario to the TUI or CLI."""
 

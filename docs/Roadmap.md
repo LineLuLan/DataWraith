@@ -37,5 +37,6 @@
 
 ## Detailed plan
 
-See `docs/BuildPlan_AllPhases.md` and `docs/BuildPlan_Phase2.md` for file-level
+See `docs/BuildPlan_AllPhases.md`, `docs/BuildPlan_Phase2.md`,
+`docs/BuildPlan_Phase3.md`, and `docs/BuildPlan_Phase4.md` for file-level
 execution order, acceptance commands, and cross-phase constraints.

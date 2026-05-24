@@ -115,3 +115,5 @@ def test_phase2_attack_all_cli_flow(tmp_path: Path) -> None:
     assert attack_result.exit_code == 0, attack_result.output
     assert (reports_dir / "concurrency.json").exists()
     assert (reports_dir / "rw-heavy.json").exists()
+    assert (reports_dir / "migration.json").exists()
+    assert (reports_dir / "security.json").exists()

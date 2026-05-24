@@ -6,7 +6,9 @@ import datawraith.engine.scenarios.concurrency as concurrency_module
 from datawraith.core.types import ConcurrencyConfig, EventType
 from datawraith.engine.scenarios import get_scenario
 from datawraith.engine.scenarios.concurrency import ConcurrencyScenario
+from datawraith.engine.scenarios.migration import MigrationScenario
 from datawraith.engine.scenarios.rw_heavy import RWHeavyScenario
+from datawraith.engine.scenarios.security import SecurityScenario
 
 
 @pytest.mark.asyncio
@@ -71,6 +73,14 @@ def test_scenario_registry_returns_concurrency() -> None:
 
 def test_scenario_registry_returns_rw_heavy() -> None:
     assert get_scenario("rw-heavy") is RWHeavyScenario
+
+
+def test_scenario_registry_returns_migration() -> None:
+    assert get_scenario("migration") is MigrationScenario
+
+
+def test_scenario_registry_returns_security() -> None:
+    assert get_scenario("security") is SecurityScenario
 
 
 def test_scenario_registry_rejects_unknown() -> None:
