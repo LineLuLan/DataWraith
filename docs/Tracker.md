@@ -2,7 +2,10 @@
 
 ## Current status
 
-Phase 1 foundation and Phase 2 RW-heavy MVP are implemented in unit-tested code paths. Real embedded PostgreSQL E2E remains gated on Python 3.12 + `pgserver`.
+Phase 1-4 MVP features are implemented in unit-tested code paths. Embedded
+PostgreSQL E2E remains gated on Python 3.12 + `pgserver`, but Python 3.13+
+users now have a safe local PostgreSQL fallback through `--database-url` or
+`DATAWRAITH_DATABASE_URL`.
 
 ## Done
 
@@ -46,13 +49,19 @@ Phase 1 foundation and Phase 2 RW-heavy MVP are implemented in unit-tested code 
 - Security scenario runs local tenant/RLS checks, parameterized injection fuzzing, and privilege posture checks
 - `sdb report` exports reports to SARIF, JUnit XML, and minimal PDF
 - Minimal TUI now shows security and report export command hints
+- `ShadowDB` can run against a user-managed local PostgreSQL URL when embedded
+  `pgserver` is unavailable
+- CLI execute commands accept `--database-url`; settings read
+  `DATAWRAITH_DATABASE_URL`
+- Non-local PostgreSQL URLs are rejected by default for safety
 
 ## Next
 
 - Verify `sdb init --execute` on Python 3.12 with `pgserver` available.
 - Verify `sdb seed --execute` on Python 3.12 with `pgserver` available.
-- Verify `sdb attack concurrency --execute --output report.json` on Python 3.12 with `pgserver` available.
-- Verify `sdb attack rw-heavy --execute --output rw-heavy.json` on Python 3.12 with `pgserver` available.
-- Verify `sdb attack migration --execute --output migration.json` on Python 3.12 with `pgserver` available.
-- Verify `sdb attack security --execute --output security.json` and `sdb report` exporters on Python 3.12 with `pgserver` available.
+- Verify all attack execute flows on Python 3.12 embedded mode.
+- Verify all attack execute flows on Python 3.13+ with
+  `DATAWRAITH_DATABASE_URL=postgresql://localhost/...`.
+- Add optional Docker Compose/local Postgres quickstart for contributors who do
+  not have Python 3.12.
 - Expand TUI from command-hint dashboard into interactive init/seed/attack screens.

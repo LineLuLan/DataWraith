@@ -34,6 +34,18 @@ def test_doctor_json_command() -> None:
     assert any(check["name"] == "Python" for check in payload["checks"])
 
 
+def test_doctor_json_accepts_local_database_url_fallback(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setenv("DATAWRAITH_DATABASE_URL", "postgresql://localhost/datawraith")
+
+    result = CliRunner().invoke(app, ["doctor", "--json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    database_check = next(check for check in payload["checks"] if check["name"] == "database_url")
+    assert database_check["ok"] is True
+    assert database_check["detail"] == "configured local PostgreSQL fallback"
+
+
 def test_init_command_dry_run(tmp_path) -> None:  # type: ignore[no-untyped-def]
     schema_path = tmp_path / "schema.sql"
     schema_path.write_text("CREATE TABLE products (id integer);", encoding="utf-8")
@@ -177,7 +189,7 @@ def test_attack_all_rejects_single_output_path(tmp_path) -> None:  # type: ignor
 def test_attack_all_execute_writes_output_dir(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     calls: list[str] = []
 
-    async def fake_execute_attack(scenario, config, data_dir):  # type: ignore[no-untyped-def]
+    async def fake_execute_attack(scenario, config, data_dir, database_url=None):  # type: ignore[no-untyped-def]
         calls.append(f"{scenario}:{data_dir.name}")
         scenario_type = {
             "concurrency": ScenarioType.CONCURRENCY,
@@ -307,10 +319,11 @@ def test_attack_execute_failure_is_user_friendly(tmp_path, monkeypatch) -> None:
 
 
 def test_attack_command_execute_writes_output(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
-    async def fake_execute_attack(scenario, config, data_dir):  # type: ignore[no-untyped-def]
+    async def fake_execute_attack(scenario, config, data_dir, database_url=None):  # type: ignore[no-untyped-def]
         assert scenario == "concurrency"
         assert config.workers == 2
         assert data_dir.name == "shadow"
+        assert database_url is None
         return ScenarioResult(
             scenario_name="concurrency",
             scenario_type=ScenarioType.CONCURRENCY,
@@ -351,6 +364,67 @@ def test_attack_command_execute_writes_output(tmp_path, monkeypatch) -> None:  #
     assert result.exit_code == 0
     assert "Health Score: 100/100" in result.output
     assert report_path.exists()
+
+
+def test_attack_execute_accepts_local_database_url(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    captured: list[str | None] = []
+
+    async def fake_execute_attack(scenario, config, data_dir, database_url=None):  # type: ignore[no-untyped-def]
+        captured.append(database_url)
+        return ScenarioResult(
+            scenario_name=scenario,
+            scenario_type=ScenarioType.CONCURRENCY,
+            config=config.model_dump(mode="json"),
+            started_at=datetime(2026, 5, 24, 12, 0, 0),
+            completed_at=datetime(2026, 5, 24, 12, 0, 1),
+            duration_seconds=1.0,
+            health_score=100,
+            metrics=HealthMetrics(
+                qps_max=2.0,
+                qps_avg=2.0,
+                latency_p50_ms=1.0,
+                latency_p95_ms=1.0,
+                latency_p99_ms=1.0,
+                error_count=0,
+                error_rate=0.0,
+            ),
+        )
+
+    monkeypatch.setattr(cli_module, "_execute_attack", fake_execute_attack)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "attack",
+            "concurrency",
+            "--execute",
+            "--data-dir",
+            str(tmp_path / "shadow"),
+            "--database-url",
+            "postgresql://localhost/datawraith",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured == ["postgresql://localhost/datawraith"]
+
+
+def test_attack_execute_rejects_nonlocal_database_url(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    result = CliRunner().invoke(
+        app,
+        [
+            "attack",
+            "concurrency",
+            "--execute",
+            "--data-dir",
+            str(tmp_path / "shadow"),
+            "--database-url",
+            "postgresql://db.example.com/prod",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "only accepts local PostgreSQL URLs" in result.output
 
 
 def test_compare_command_renders_report_delta(tmp_path) -> None:  # type: ignore[no-untyped-def]

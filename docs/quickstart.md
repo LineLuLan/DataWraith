@@ -34,8 +34,13 @@ sdb compare baseline.json current.json
 sdb compare baseline.json current.json --json
 ```
 
-Real embedded PostgreSQL execution requires Python 3.12 with `pgserver`
-available:
+Real execution has two local-only paths:
+
+1. Python 3.12 embedded mode with `pgserver` available.
+2. Python 3.13+ local PostgreSQL fallback through `--database-url` or
+   `DATAWRAITH_DATABASE_URL`.
+
+Embedded mode:
 
 ```bash
 sdb init tests/fixtures/sample_schema.sql --execute
@@ -50,3 +55,15 @@ sdb report security.json --format sarif --output security.sarif
 sdb report security.json --format junit --output security.xml
 sdb report security.json --format pdf --output security.pdf
 ```
+
+Local PostgreSQL fallback:
+
+```bash
+$env:DATAWRAITH_DATABASE_URL="postgresql://localhost/datawraith"
+sdb init tests/fixtures/sample_schema.sql --execute
+sdb seed --table products --column id:int --column name:name --column stock:int --rows 10 --execute
+sdb attack concurrency --execute --duration 10 --workers 2 --updates 10 --output report.json
+```
+
+DataWraith rejects non-local PostgreSQL hosts by default. Do not point the tool
+at production databases.

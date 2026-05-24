@@ -17,6 +17,8 @@ nav:
   - Tracker: Tracker.md
   - Handoff: Handoff.md
   - Decisions: Decisions.md
+  - Risks: Risks.md
+  - Session Log: SessionLog.md
   - Agent Instructions: AGENTS.md
   - Claude Context: CLAUDE.md
   - Source Brief: DataWraith_Brief.md

@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     workspace_dir: Path = Field(default_factory=lambda: Path.cwd() / ".datawraith")
     log_level: str = "INFO"
     telemetry_enabled: bool = False
+    database_url: str | None = None
 
     @property
     def shadow_data_dir(self) -> Path:

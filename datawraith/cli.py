@@ -14,6 +14,7 @@ import typer
 from datawraith import __version__
 from datawraith.ai.advisor import analyze_report, has_api_key, store_api_key
 from datawraith.core.config import get_settings
+from datawraith.core.database_url import validate_local_database_url
 from datawraith.core.exceptions import DataWraithError
 from datawraith.core.shadow_db import ShadowDB
 from datawraith.core.types import (
@@ -125,6 +126,16 @@ def init(
         Path | None,
         typer.Option("--data-dir", help="ShadowDB data directory. Defaults to .datawraith/shadow."),
     ] = None,
+    database_url: Annotated[
+        str | None,
+        typer.Option(
+            "--database-url",
+            help=(
+                "Use a local PostgreSQL URL instead of embedded pgserver. "
+                "Defaults to DATAWRAITH_DATABASE_URL when set."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Parse a schema file and prepare a future shadow DB init flow."""
     if not schema_path.exists():
@@ -145,9 +156,9 @@ def init(
 
     if execute:
         target_data_dir = data_dir or get_settings().shadow_data_dir
-        target_data_dir.mkdir(parents=True, exist_ok=True)
-        db = ShadowDB(data_dir=target_data_dir, cleanup_mode="stop")
+        db: ShadowDB | None = None
         try:
+            db = _create_shadow_db(target_data_dir, database_url)
             db.start()
             # Execute the original schema, not comment-stripped statements, so
             # PostgreSQL remains the source of truth for valid DDL syntax.
@@ -157,7 +168,8 @@ def init(
             typer.echo(f"ShadowDB init failed: {exc}", err=True)
             raise typer.Exit(code=1) from exc
         finally:
-            db.stop()
+            if db is not None:
+                db.stop()
 
         typer.echo(f"ShadowDB data dir: {target_data_dir}")
         typer.echo(f"Loaded tables: {len(loaded_tables)}")
@@ -189,6 +201,16 @@ def seed(
         Path | None,
         typer.Option("--data-dir", help="ShadowDB data directory. Defaults to .datawraith/shadow."),
     ] = None,
+    database_url: Annotated[
+        str | None,
+        typer.Option(
+            "--database-url",
+            help=(
+                "Use a local PostgreSQL URL instead of embedded pgserver. "
+                "Defaults to DATAWRAITH_DATABASE_URL when set."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Create a deterministic seed plan preview."""
     try:
@@ -199,15 +221,17 @@ def seed(
 
     if execute:
         target_data_dir = data_dir or get_settings().shadow_data_dir
-        db = ShadowDB(data_dir=target_data_dir, cleanup_mode="stop")
+        db: ShadowDB | None = None
         try:
+            db = _create_shadow_db(target_data_dir, database_url)
             db.start()
             result = execute_seed_plan(db, plan)
         except DataWraithError as exc:
             typer.echo(f"Seeder execution failed: {exc}", err=True)
             raise typer.Exit(code=1) from exc
         finally:
-            db.stop()
+            if db is not None:
+                db.stop()
 
         typer.echo(
             f"Inserted {result.rows_inserted}/{result.rows_requested} rows "
@@ -299,6 +323,16 @@ def attack(
         Path | None,
         typer.Option("--data-dir", help="ShadowDB data directory. Defaults to .datawraith/shadow."),
     ] = None,
+    database_url: Annotated[
+        str | None,
+        typer.Option(
+            "--database-url",
+            help=(
+                "Use a local PostgreSQL URL instead of embedded pgserver. "
+                "Defaults to DATAWRAITH_DATABASE_URL when set."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Validate or execute an attack scenario."""
     try:
@@ -353,7 +387,9 @@ def attack(
         target_data_dir = data_dir or get_settings().shadow_data_dir
         for selected_scenario, config in configs.items():
             try:
-                result = asyncio.run(_execute_attack(selected_scenario, config, target_data_dir))
+                result = asyncio.run(
+                    _execute_attack(selected_scenario, config, target_data_dir, database_url)
+                )
             except DataWraithError as exc:
                 typer.echo(f"Attack failed: {exc}", err=True)
                 raise typer.Exit(code=1) from exc
@@ -506,6 +542,25 @@ def _report_path_for(
     return None
 
 
+def _resolve_database_url(database_url: str | None) -> str | None:
+    configured_url = database_url or get_settings().database_url
+    if configured_url is None:
+        return None
+    return validate_local_database_url(configured_url)
+
+
+def _create_shadow_db(data_dir: Path, database_url: str | None) -> ShadowDB:
+    resolved_database_url = _resolve_database_url(database_url)
+    if resolved_database_url is None:
+        data_dir.mkdir(parents=True, exist_ok=True)
+        return ShadowDB(data_dir=data_dir, cleanup_mode="stop")
+    return ShadowDB(
+        data_dir=data_dir,
+        cleanup_mode="stop",
+        external_url=resolved_database_url,
+    )
+
+
 def _build_attack_config(
     *,
     scenario: str,
@@ -569,6 +624,8 @@ def _build_attack_config(
 
 def _collect_doctor_checks() -> list[tuple[str, bool, str]]:
     checks: list[tuple[str, bool, str]] = []
+    database_url: str | None = None
+    database_url_error: DataWraithError | None = None
 
     python_ok = sys.version_info >= (3, 12)
     checks.append(("Python", python_ok, sys.version.split()[0]))
@@ -579,13 +636,33 @@ def _collect_doctor_checks() -> list[tuple[str, bool, str]]:
         detail = "available" if found else "missing"
         checks.append((module_name, found, detail))
 
+    try:
+        database_url = _resolve_database_url(None)
+    except DataWraithError as exc:
+        database_url_error = exc
+
     pgserver_found = importlib.util.find_spec("pgserver") is not None
     if pgserver_found:
         checks.append(("pgserver", True, "available"))
+    elif database_url is not None:
+        checks.append(("pgserver", True, "unavailable; local PostgreSQL fallback configured"))
     elif sys.version_info >= (3, 13):
-        checks.append(("pgserver", False, "unavailable on this Python; use Python 3.12"))
+        checks.append(
+            (
+                "pgserver",
+                False,
+                "unavailable on this Python; use Python 3.12 for embedded mode "
+                "or configure DATAWRAITH_DATABASE_URL for local PostgreSQL",
+            )
+        )
     else:
         checks.append(("pgserver", False, "missing"))
+
+    if database_url_error is not None:
+        checks.append(("database_url", False, str(database_url_error)))
+    else:
+        detail = "configured local PostgreSQL fallback" if database_url else "not configured"
+        checks.append(("database_url", True, detail))
 
     return checks
 
@@ -594,9 +671,9 @@ async def _execute_attack(
     scenario: str,
     config: ScenarioConfig,
     data_dir: Path,
+    database_url: str | None = None,
 ) -> ScenarioResult:
-    data_dir.mkdir(parents=True, exist_ok=True)
-    db = ShadowDB(data_dir=data_dir, cleanup_mode="stop")
+    db = _create_shadow_db(data_dir, database_url)
     db.start()
     final_result: ScenarioResult | None = None
     try:

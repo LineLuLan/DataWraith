@@ -6,21 +6,26 @@
 2. Install on Python 3.12 for embedded PostgreSQL work.
 3. Run `python -m pip install -e ".[dev]"`.
 4. Run `sdb doctor`, `pytest`, `ruff check .`, and `mypy datawraith`.
-5. Verify `sdb init tests/fixtures/sample_schema.sql --execute` on Python 3.12 with `pgserver` available.
-6. Verify `sdb seed --table products --column id:int --column name:name --rows 5 --execute` on Python 3.12 with `pgserver` available.
-7. Verify `sdb attack concurrency --execute --output report.json` on Python 3.12 with `pgserver` available.
-8. Verify `sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output rw-heavy.json` on Python 3.12 with `pgserver` available.
-9. Verify `sdb attack migration --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output migration.json` on Python 3.12 with `pgserver` available.
-10. Verify `sdb ai analyze migration.json --provider openai` returns advisory output; provider network enrichment remains deferred.
-11. Verify `sdb attack security --execute --duration 10 --tenants 2 --rows-per-tenant 2 --output security.json` on Python 3.12 with `pgserver` available.
-12. Verify `sdb report security.json --format sarif|junit|pdf --output ...` exporters.
-13. On Python 3.13, continue with interactive TUI screens or CLI UX polish that does not require real `pgserver`.
+5. If using Python 3.12, verify embedded mode with
+   `sdb init tests/fixtures/sample_schema.sql --execute`.
+6. If using Python 3.13+, start a local PostgreSQL instance and set
+   `DATAWRAITH_DATABASE_URL=postgresql://localhost/<db>` or pass
+   `--database-url postgresql://localhost/<db>` to execute commands.
+7. Verify `sdb seed --table products --column id:int --column name:name --rows 5 --execute`.
+8. Verify `sdb attack concurrency --execute --output report.json`.
+9. Verify `sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output rw-heavy.json`.
+10. Verify `sdb attack migration --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output migration.json`.
+11. Verify `sdb ai analyze migration.json --provider openai` returns advisory output; provider network enrichment remains deferred.
+12. Verify `sdb attack security --execute --duration 10 --tenants 2 --rows-per-tenant 2 --output security.json`.
+13. Verify `sdb report security.json --format sarif|junit|pdf --output ...` exporters.
 
 ## Known limitation
 
-`pgserver` 0.1.4 has no Python 3.13 wheel. The scaffold remains importable on
-Python 3.13, but embedded PostgreSQL startup requires Python 3.12 until upstream
-support lands.
+`pgserver` 0.1.4 has no Python 3.13 wheel. Embedded PostgreSQL startup still
+requires Python 3.12 until upstream support lands. Python 3.13+ users can run
+real execute flows against a user-managed local PostgreSQL instance via
+`--database-url` or `DATAWRAITH_DATABASE_URL`; non-local hosts are rejected by
+default.
 
 ## Latest build slice
 
@@ -42,6 +47,10 @@ support lands.
 - `sdb attack security --execute --output security.json` is wired to local ShadowDB tenant/RLS/fuzz/privilege checks; current Python 3.13 runtime cannot verify it because `pgserver` is unavailable.
 - `sdb report security.json --format sarif|junit|pdf --output ...` exports existing JSON reports to CI/security-friendly formats.
 - `sdb doctor --json` returns machine-readable health checks for automation.
+- `sdb init/seed/attack ... --execute --database-url postgresql://localhost/<db>`
+  uses a local PostgreSQL fallback instead of embedded `pgserver`.
+- `DATAWRAITH_DATABASE_URL=postgresql://localhost/<db>` provides the same
+  fallback for repeated commands.
 - `sdb` opens a minimal Textual dashboard with runtime status, command hints, and report placeholder.
 - `tests/test_phase1_e2e.py` captures the target alpha CLI flow and skips when `pgserver` is unavailable.
 - `tests/test_phase2_e2e.py` captures the Phase 2 rw-heavy CLI flow and skips when `pgserver` is unavailable.
@@ -49,4 +58,6 @@ support lands.
 ## Safety reminder
 
 Do not connect DataWraith to production databases. The intended default is a
-local embedded shadow PostgreSQL instance.
+local embedded shadow PostgreSQL instance. The local PostgreSQL fallback accepts
+only localhost/loopback/socket-style URLs unless a future explicit unsafe mode
+is designed and documented.
