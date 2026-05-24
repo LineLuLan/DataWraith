@@ -18,6 +18,8 @@
 - PyInstaller build
 - Rule-based slow-query/full-scan analysis
 - Conservative laptop-safe defaults
+- Gate: real embedded PostgreSQL verification still requires Python 3.12 +
+  `pgserver`; Python 3.13 validates unit/dry-run paths only.
 
 ## Phase 3 — v0.3 Migration Lock + AI BYOK
 
@@ -35,5 +37,5 @@
 
 ## Detailed plan
 
-See `docs/BuildPlan_AllPhases.md` for file-level execution order, acceptance
-commands, and cross-phase constraints.
+See `docs/BuildPlan_AllPhases.md` and `docs/BuildPlan_Phase2.md` for file-level
+execution order, acceptance commands, and cross-phase constraints.

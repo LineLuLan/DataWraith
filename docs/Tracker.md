@@ -2,7 +2,7 @@
 
 ## Current status
 
-Initial scaffold implemented and first Phase 1 engine slice started.
+Phase 1 foundation and Phase 2 RW-heavy MVP are implemented in unit-tested code paths. Real embedded PostgreSQL E2E remains gated on Python 3.12 + `pgserver`.
 
 ## Done
 
@@ -29,10 +29,17 @@ Initial scaffold implemented and first Phase 1 engine slice started.
 - `sdb doctor --json` machine-readable health check added
 - Phase 1 CLI E2E smoke test added and skips cleanly when `pgserver` is unavailable
 - CI now includes `mkdocs build --strict`
+- Phase 2 E2E test added and skips cleanly when `pgserver` is unavailable
+- Windows PyInstaller spec and manual/PR executable workflow added
+- `sdb compare baseline.json current.json` compares health score, QPS, p95/p99, and error rate
+- Rule-based slow-query analyzer produces `top_culprits` hints from observed slow query samples
+- RW-heavy workload prepares local product/customer/order seed tables and runs mixed SELECT/INSERT/UPDATE workers
+- Phase 2 `rw-heavy` scenario registered as `sdb attack rw-heavy`
 
 ## Next
 
 - Verify `sdb init --execute` on Python 3.12 with `pgserver` available.
 - Verify `sdb seed --execute` on Python 3.12 with `pgserver` available.
 - Verify `sdb attack concurrency --execute --output report.json` on Python 3.12 with `pgserver` available.
+- Verify `sdb attack rw-heavy --execute --output rw-heavy.json` on Python 3.12 with `pgserver` available.
 - Expand TUI from command-hint dashboard into interactive init/seed/attack screens.

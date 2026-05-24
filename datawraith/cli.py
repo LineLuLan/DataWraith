@@ -15,7 +15,13 @@ from datawraith import __version__
 from datawraith.core.config import get_settings
 from datawraith.core.exceptions import DataWraithError
 from datawraith.core.shadow_db import ShadowDB
-from datawraith.core.types import ConcurrencyConfig, EventType, ScenarioResult
+from datawraith.core.types import (
+    ConcurrencyConfig,
+    EventType,
+    RWHeavyConfig,
+    ScenarioConfig,
+    ScenarioResult,
+)
 from datawraith.engine.runner import run_scenario
 from datawraith.engine.schema_parser import parse_schema
 from datawraith.engine.seeder import (
@@ -25,6 +31,7 @@ from datawraith.engine.seeder import (
     render_insert_sql,
 )
 from datawraith.output.ascii_renderer import render_result
+from datawraith.output.comparator import compare_results, load_result, render_comparison
 from datawraith.output.json_exporter import JSONExporter
 
 app = typer.Typer(
@@ -205,15 +212,34 @@ def seed(
 
 @app.command()
 def attack(
-    scenario: Annotated[str, typer.Argument(help="Scenario name. Phase 1 supports concurrency.")],
+    scenario: Annotated[
+        str,
+        typer.Argument(help="Scenario name. Supports concurrency and rw-heavy."),
+    ],
     duration: Annotated[int, typer.Option("--duration", help="Duration in seconds.")] = 10,
     workers: Annotated[int, typer.Option("--workers", help="Concurrent worker count.")] = 10,
     concurrent_updates: Annotated[
         int,
-        typer.Option("--updates", help="Maximum UPDATE operations across all workers."),
+        typer.Option("--updates", help="Maximum UPDATE operations for concurrency scenario."),
     ] = 100,
     target_table: Annotated[str, typer.Option("--table", help="Target table name.")] = "products",
     target_column: Annotated[str, typer.Option("--column", help="Target numeric column.")] = "stock",
+    read_ratio: Annotated[
+        float,
+        typer.Option("--read-ratio", help="RW-heavy read ratio from 0.0 to 1.0."),
+    ] = 0.7,
+    row_count: Annotated[
+        int,
+        typer.Option("--row-count", help="RW-heavy synthetic products/customers to prepare."),
+    ] = 100,
+    operation_limit: Annotated[
+        int,
+        typer.Option("--operations", help="RW-heavy maximum operations across all workers."),
+    ] = 1000,
+    slow_query_threshold_ms: Annotated[
+        float,
+        typer.Option("--slow-ms", help="RW-heavy slow query threshold in milliseconds."),
+    ] = 100.0,
     output: Annotated[Path | None, typer.Option("--output", "-o", help="JSON report path.")] = None,
     dry_run: Annotated[
         bool,
@@ -229,23 +255,28 @@ def attack(
     ] = None,
 ) -> None:
     """Validate or execute an attack scenario."""
-    if scenario != "concurrency":
-        typer.echo("Only the concurrency scenario is registered in Phase 1 scaffold.", err=True)
+    if scenario not in {"concurrency", "rw-heavy"}:
+        typer.echo("Unknown scenario. Available: concurrency, rw-heavy", err=True)
         raise typer.Exit(code=1)
     if output is not None and not execute:
         typer.echo("--output requires --execute because dry-run does not produce a report.", err=True)
         raise typer.Exit(code=1)
 
     try:
-        config = ConcurrencyConfig(
-            duration_seconds=duration,
+        config = _build_attack_config(
+            scenario=scenario,
+            duration=duration,
             workers=workers,
             concurrent_updates=concurrent_updates,
             target_table=target_table,
             target_column=target_column,
+            read_ratio=read_ratio,
+            row_count=row_count,
+            operation_limit=operation_limit,
+            slow_query_threshold_ms=slow_query_threshold_ms,
         )
     except ValueError as exc:
-        typer.echo(f"Invalid concurrency config: {exc}", err=True)
+        typer.echo(f"Invalid {scenario} config: {exc}", err=True)
         raise typer.Exit(code=1) from exc
 
     typer.echo(f"Scenario: {scenario}")
@@ -265,6 +296,52 @@ def attack(
 
     if dry_run:
         typer.echo("Dry-run only; pass --execute to run against local ShadowDB.")
+
+
+@app.command()
+def compare(
+    baseline: Annotated[Path, typer.Argument(help="Baseline JSON report path.")],
+    current: Annotated[Path, typer.Argument(help="Current JSON report path.")],
+) -> None:
+    """Compare two DataWraith JSON reports."""
+    try:
+        comparison = compare_results(load_result(baseline), load_result(current))
+    except DataWraithError as exc:
+        typer.echo(f"Compare failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(render_comparison(comparison))
+
+
+def _build_attack_config(
+    *,
+    scenario: str,
+    duration: int,
+    workers: int,
+    concurrent_updates: int,
+    target_table: str,
+    target_column: str,
+    read_ratio: float,
+    row_count: int,
+    operation_limit: int,
+    slow_query_threshold_ms: float,
+) -> ScenarioConfig:
+    if scenario == "concurrency":
+        return ConcurrencyConfig(
+            duration_seconds=duration,
+            workers=workers,
+            concurrent_updates=concurrent_updates,
+            target_table=target_table,
+            target_column=target_column,
+        )
+    return RWHeavyConfig(
+        duration_seconds=duration,
+        workers=workers,
+        read_write_ratio=read_ratio,
+        row_count=row_count,
+        operation_limit=operation_limit,
+        slow_query_threshold_ms=slow_query_threshold_ms,
+    )
 
 
 def _collect_doctor_checks() -> list[tuple[str, bool, str]]:
@@ -292,7 +369,7 @@ def _collect_doctor_checks() -> list[tuple[str, bool, str]]:
 
 async def _execute_attack(
     scenario: str,
-    config: ConcurrencyConfig,
+    config: ScenarioConfig,
     data_dir: Path,
 ) -> ScenarioResult:
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -307,6 +384,8 @@ async def _execute_attack(
                 typer.echo(
                     "metrics "
                     f"completed={event.data.get('completed', 0)} "
+                    f"reads={event.data.get('reads', '-')} "
+                    f"writes={event.data.get('writes', '-')} "
                     f"errors={event.data.get('errors', 0)} "
                     f"deadlocks={event.data.get('deadlocks', 0)} "
                     f"qps={float(event.data.get('qps', 0.0)):.1f}"

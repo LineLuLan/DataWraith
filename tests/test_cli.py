@@ -140,6 +140,17 @@ def test_attack_command_dry_run() -> None:
     assert "Scenario: concurrency" in result.output
 
 
+def test_attack_rw_heavy_dry_run() -> None:
+    result = CliRunner().invoke(
+        app,
+        ["attack", "rw-heavy", "--dry-run", "--row-count", "10", "--operations", "5"],
+    )
+
+    assert result.exit_code == 0
+    assert "Scenario: rw-heavy" in result.output
+    assert "read_write_ratio" in result.output
+
+
 def test_attack_output_requires_execute(tmp_path) -> None:  # type: ignore[no-untyped-def]
     result = CliRunner().invoke(
         app,
@@ -219,3 +230,35 @@ def test_attack_command_execute_writes_output(tmp_path, monkeypatch) -> None:  #
     assert result.exit_code == 0
     assert "Health Score: 100/100" in result.output
     assert report_path.exists()
+
+
+def test_compare_command_renders_report_delta(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    baseline = ScenarioResult(
+        scenario_name="concurrency",
+        scenario_type=ScenarioType.CONCURRENCY,
+        config={"workers": 2},
+        started_at=datetime(2026, 5, 24, 12, 0, 0),
+        completed_at=datetime(2026, 5, 24, 12, 0, 1),
+        duration_seconds=1.0,
+        health_score=100,
+        metrics=HealthMetrics(
+            qps_max=2.0,
+            qps_avg=2.0,
+            latency_p50_ms=1.0,
+            latency_p95_ms=2.0,
+            latency_p99_ms=3.0,
+            error_count=0,
+            error_rate=0.0,
+        ),
+    )
+    current = baseline.model_copy(update={"scenario_name": "rw-heavy", "health_score": 90})
+    baseline_path = tmp_path / "baseline.json"
+    current_path = tmp_path / "current.json"
+    baseline_path.write_text(json.dumps(baseline.model_dump(mode="json")), encoding="utf-8")
+    current_path.write_text(json.dumps(current.model_dump(mode="json")), encoding="utf-8")
+
+    result = CliRunner().invoke(app, ["compare", str(baseline_path), str(current_path)])
+
+    assert result.exit_code == 0
+    assert "Comparing concurrency -> rw-heavy" in result.output
+    assert "health_score" in result.output

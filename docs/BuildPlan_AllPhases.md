@@ -27,15 +27,16 @@ sdb attack concurrency --execute --duration 10 --workers 2 --updates 10 --output
 python -m json.tool report.json
 ```
 
-Expected status before Phase 2 starts:
+Expected status before real E2E release claims:
 
 - Python 3.12.x
 - `pgserver: available`
 - all real DB integration tests pass
 - `report.json` contains `scenario_type=concurrency` and non-zero `qps_avg`
 
-Do not start Phase 2 feature work until this gate is either passed or explicitly
-accepted as deferred with a clear release risk.
+Phase 2 code may continue behind skipped real-DB tests, but DataWraith must not
+claim Phase 1 or Phase 2 real embedded PostgreSQL E2E verification until this
+gate passes.
 
 ## Phase 1 — v0.1 Concurrency Foundation
 
@@ -83,7 +84,7 @@ Build slices:
 1. **RW Heavy config and scenario contract**
    - Add `RWHeavyConfig` fields needed for workload scale, read/write ratio,
      joins, and row count.
-   - Register `rw_heavy` in scenario registry.
+   - Register `rw-heavy` in scenario registry.
    - Add tests for config validation and registry behavior.
 
 2. **Read/write workload MVP**
@@ -116,17 +117,22 @@ Build slices:
 
 6. **PyInstaller executable**
    - Add build workflow for Windows executable.
-   - Include `--collect-all pgserver` and Textual assets.
+   - Use a checked-in PyInstaller spec and collect DataWraith hidden imports.
    - Treat executable as secondary distribution; pip remains primary.
 
 Phase 2 acceptance:
 
 ```bash
-sdb attack rw-heavy --execute --duration 10 --output rw-heavy.json
+sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output rw-heavy.json
 sdb compare baseline.json rw-heavy.json
 python -m build
 pytest
 ```
+
+Current implementation status: RW-heavy MVP, compare command, rule-based
+analyzer, PyInstaller spec, and executable workflow are implemented and covered
+by unit tests. Real DB E2E remains skipped on the current Python 3.13 runtime
+because `pgserver` is unavailable.
 
 ## Phase 3 — v0.3 Migration Lock + AI BYOK
 

@@ -9,17 +9,19 @@ pip install datawraith
 sdb
 ```
 
-## Phase 1 focus
+## Current focus
 
-The first release targets the Concurrency Test foundation:
+The first release targets the Concurrency Test foundation and the Phase 2 branch adds RW-heavy workload primitives:
 
 - Python package + `sdb` CLI entrypoint
 - Embedded PostgreSQL wrapper through `pgserver`
 - Engine contracts for streaming scenario events
 - Textual TUI scaffold
 - JSON report export contract
+- RW-heavy mixed SELECT/INSERT/UPDATE workload MVP
+- JSON report comparison via `sdb compare`
 
-Full chaos scenario implementations land incrementally after this scaffold.
+Real embedded PostgreSQL E2E requires Python 3.12 with `pgserver` available.
 
 ## Developer quickstart
 
@@ -47,6 +49,9 @@ sdb init schema.sql # parse schema dry-run
 sdb seed --table products --column id:int --column name:name --rows 10
 sdb attack concurrency
 sdb attack concurrency --execute --output report.json
+sdb attack rw-heavy --dry-run
+sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 100 --operations 1000 --output rw-heavy.json
+sdb compare report.json rw-heavy.json
 python -m datawraith --version
 ```
 
