@@ -11,6 +11,9 @@
 6. If using Python 3.13+, start a local PostgreSQL instance and set
    `DATAWRAITH_DATABASE_URL=postgresql://localhost/<db>` or pass
    `--database-url postgresql://localhost/<db>` to execute commands.
+   The bundled Docker fallback is
+   `docker compose up -d postgres` with
+   `postgresql://datawraith:datawraith@localhost:5432/datawraith`.
 7. Verify `sdb seed --table products --column id:int --column name:name --rows 5 --execute`.
 8. Verify `sdb attack concurrency --execute --output report.json`.
 9. Verify `sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output rw-heavy.json`.
@@ -51,6 +54,12 @@ default.
   uses a local PostgreSQL fallback instead of embedded `pgserver`.
 - `DATAWRAITH_DATABASE_URL=postgresql://localhost/<db>` provides the same
   fallback for repeated commands.
+- `docker-compose.yml` starts a local PostgreSQL fallback for contributor E2E
+  testing.
+- GitHub Actions CI includes a `postgres-e2e` job that runs Phase 1-4 execute
+  flows on Python 3.13 with `DATAWRAITH_E2E_DATABASE_URL`.
+- Root `README.md` is intentionally present as the GitHub landing page; other
+  long-form docs remain under `docs/`.
 - `sdb` opens a minimal Textual dashboard with runtime status, command hints, and report placeholder.
 - `tests/test_phase1_e2e.py` captures the target alpha CLI flow and skips when `pgserver` is unavailable.
 - `tests/test_phase2_e2e.py` captures the Phase 2 rw-heavy CLI flow and skips when `pgserver` is unavailable.

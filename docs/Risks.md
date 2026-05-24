@@ -9,6 +9,5 @@
   Mitigation: reject non-local PostgreSQL URLs by default and document the
   local-only safety model.
 - **Real DB E2E coverage**: current local validation runs on Python 3.13 without
-  `pgserver`. Mitigation: CI/manual matrix should add Python 3.12 embedded E2E
-  and Python 3.13 local PostgreSQL fallback E2E before release tags.
-
+  `pgserver`. Mitigation: CI now has a Python 3.13 local PostgreSQL fallback
+  E2E job; manual Python 3.12 embedded E2E remains required before release tags.
