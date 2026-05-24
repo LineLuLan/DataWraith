@@ -45,7 +45,7 @@ async def test_concurrency_scenario_runs_against_shadow_db(tmp_path: Path) -> No
             ConcurrencyConfig(
                 duration_seconds=10,
                 workers=2,
-                concurrent_updates=5,
+                concurrent_updates=10,
                 target_table="products",
                 target_column="stock",
             ),
