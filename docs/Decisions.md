@@ -108,3 +108,13 @@ synthetic data, and run DataWraith locally.
 Future option: add an explicit advanced remote-shadow mode only after designing
 strong confirmation, allowlist/denylist, disposable-branch guidance, and secret
 redaction safeguards.
+
+## 2026-05-24 — Include local market-product demo project
+
+Decision: add `examples/market-product-demo/` as a small five-table PostgreSQL
+demo project for showing DataWraith on a realistic product-management domain.
+
+Rationale: `sdb quickstart` is excellent for activation, but a market/product
+schema makes demos easier to understand for GitHub visitors and testers. The
+demo remains local-only and uses synthetic data so it does not weaken the
+cloud/production safety posture.

@@ -65,6 +65,7 @@ users now have a safe local PostgreSQL fallback through `--database-url` or
   runs the v1 smoke flow with safe defaults
 - TUI now highlights recipes/quickstart first to reduce syntax memorization
 - `docs/UsageGuide.md` documents detailed test usage, report flows, and safe Neon/Supabase/cloud PostgreSQL workflow
+- `examples/market-product-demo/` provides a five-table product-management demo schema, sample data, and scripts for showcasing DataWraith
 
 ## Next
 

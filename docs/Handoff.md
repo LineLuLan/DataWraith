@@ -6,7 +6,7 @@
 2. Install on Python 3.12 for embedded PostgreSQL work.
 3. Run `python -m pip install -e ".[dev]"`.
 4. Run `sdb doctor`, `pytest`, `ruff check .`, and `mypy datawraith`.
-5. For UX-first testing, run `sdb recipes` and `sdb quickstart`; read `docs/UsageGuide.md` for the full step-by-step user testing guide.
+5. For UX-first testing, run `sdb recipes` and `sdb quickstart`; read `docs/UsageGuide.md` for the full step-by-step user testing guide. For a realistic product-management showcase, run `examples/market-product-demo/run-demo.ps1`.
 6. If using Python 3.12, verify embedded mode with
    `sdb init tests/fixtures/sample_schema.sql --execute`.
 7. If using Python 3.13+, start a local PostgreSQL instance and set
@@ -56,6 +56,7 @@ default.
 - `sdb recipes` and `sdb quickstart` are the recommended UX entrypoints for
   users who do not want to remember long command syntax.
 - `docs/UsageGuide.md` now captures detailed CLI usage, report interpretation, and cloud PostgreSQL guidance: Neon/Supabase users should export schema-only metadata and run DataWraith against a local shadow database, not a hosted database URL.
+- `examples/market-product-demo/` is a small five-table market/product-management demo with `schema.sql`, `sample_data.sql`, and cross-platform run scripts.
 - GitHub Actions CI includes a `postgres-e2e` job that runs Phase 1-4 execute
   flows on Python 3.13 with `DATAWRAITH_E2E_DATABASE_URL`.
 - Root `README.md` is intentionally present as the GitHub landing page; other
