@@ -1,0 +1,20 @@
+site_name: DataWraith Docs
+site_url: https://datawraith.dev/docs
+theme:
+  name: material
+nav:
+  - Home: index.md
+  - Package README: PackageREADME.md
+  - Quickstart: quickstart.md
+  - Project Brief: ProjectBrief.md
+  - Architecture: Architecture.md
+  - Roadmap: Roadmap.md
+  - All Phases Build Plan: BuildPlan_AllPhases.md
+  - Phase 1 Build Plan: BuildPlan_Phase1.md
+  - Tracker: Tracker.md
+  - Handoff: Handoff.md
+  - Decisions: Decisions.md
+  - Agent Instructions: AGENTS.md
+  - Claude Context: CLAUDE.md
+  - Source Brief: DataWraith_Brief.md
+  - Source Blueprint: DataWraith_Blueprint_E2E.md

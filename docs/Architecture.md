@@ -1,0 +1,33 @@
+# DataWraith — Architecture
+
+## Layers
+
+1. **Interface**: Typer CLI and Textual TUI.
+2. **Output**: JSON export and ASCII rendering.
+3. **Engine**: scenario registry and streaming `ScenarioEvent` contracts.
+4. **Core**: Pydantic models, exceptions, config, logging, and `ShadowDB`.
+
+## Public contracts
+
+- `Scenario.validate_config() -> list[str]`
+- `Scenario.run() -> AsyncIterator[ScenarioEvent]`
+- Final scenario event must be `EventType.COMPLETED` once a scenario implementation is complete.
+- JSON exporter writes `ScenarioResult.model_dump(mode="json")`.
+- Schema parser summarizes DDL and rejects obviously dangerous statements before future execution paths.
+- Seeder produces deterministic preview rows/SQL and has a parameterized psycopg insertion path for local ShadowDB; high-volume COPY optimization is deferred.
+- Concurrency Scenario MVP uses asyncpg connections per worker, conservative local defaults, and reports QPS, latency percentiles, errors, and deadlocks.
+- TUI currently acts as a Phase 1 command dashboard: runtime status, default ShadowDB path, Concurrency Test command hints, and a report placeholder.
+
+## Embedded PostgreSQL
+
+`ShadowDB` loads `pgserver` lazily. This keeps imports and CLI health checks
+usable on Python versions where `pgserver` wheels are not available yet.
+The default CLI execution path stores local embedded PostgreSQL data under
+`.datawraith/shadow`, which is gitignored and intended only for development
+shadow data.
+
+## Current Python support note
+
+The project code targets Python 3.12+. `pgserver` 0.1.4 currently publishes
+wheels through Python 3.12, so Python 3.13 can run scaffold checks but cannot
+start embedded PostgreSQL until upstream support exists.
