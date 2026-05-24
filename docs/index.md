@@ -14,9 +14,10 @@ Read these in order:
 4. `BuildPlan_Phase1.md` - detailed Phase 1 build roadmap.
 5. `BuildPlan_Phase2.md` - detailed Phase 2 build roadmap.
 6. `BuildPlan_Phase3.md` - detailed Phase 3 build roadmap.
-7. `Tracker.md` - current completed/next state.
-8. `Handoff.md` - latest implementation notes and known limits.
-9. `Decisions.md` - tradeoffs already chosen.
+7. `BuildPlan_Phase4.md` - detailed Phase 4 build roadmap.
+8. `Tracker.md` - current completed/next state.
+9. `Handoff.md` - latest implementation notes and known limits.
+10. `Decisions.md` - tradeoffs already chosen.
 
 The original source documents are preserved in:
 

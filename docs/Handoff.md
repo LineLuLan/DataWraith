@@ -12,7 +12,9 @@
 8. Verify `sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output rw-heavy.json` on Python 3.12 with `pgserver` available.
 9. Verify `sdb attack migration --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output migration.json` on Python 3.12 with `pgserver` available.
 10. Verify `sdb ai analyze migration.json --provider openai` returns advisory output; provider network enrichment remains deferred.
-11. On Python 3.13, continue with interactive TUI screens or CLI UX polish that does not require real `pgserver`.
+11. Verify `sdb attack security --execute --duration 10 --tenants 2 --rows-per-tenant 2 --output security.json` on Python 3.12 with `pgserver` available.
+12. Verify `sdb report security.json --format sarif|junit|pdf --output ...` exporters.
+13. On Python 3.13, continue with interactive TUI screens or CLI UX polish that does not require real `pgserver`.
 
 ## Known limitation
 
@@ -36,6 +38,9 @@ support lands.
 - `sdb attack migration --dry-run` validates the Phase 3 migration config without database execution.
 - `sdb attack migration --execute --output migration.json` is wired to a local ShadowDB DDL-under-load simulation; current Python 3.13 runtime cannot verify it because `pgserver` is unavailable.
 - `sdb ai setup/status/analyze` is wired for BYOK advisory UX; analyze returns offline rule-based migration suggestions and never auto-applies SQL.
+- `sdb attack security --dry-run` validates the Phase 4 security config without database execution.
+- `sdb attack security --execute --output security.json` is wired to local ShadowDB tenant/RLS/fuzz/privilege checks; current Python 3.13 runtime cannot verify it because `pgserver` is unavailable.
+- `sdb report security.json --format sarif|junit|pdf --output ...` exports existing JSON reports to CI/security-friendly formats.
 - `sdb doctor --json` returns machine-readable health checks for automation.
 - `sdb` opens a minimal Textual dashboard with runtime status, command hints, and report placeholder.
 - `tests/test_phase1_e2e.py` captures the target alpha CLI flow and skips when `pgserver` is unavailable.

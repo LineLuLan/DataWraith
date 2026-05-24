@@ -7,7 +7,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, cast
 
 import typer
 
@@ -23,6 +23,7 @@ from datawraith.core.types import (
     RWHeavyConfig,
     ScenarioConfig,
     ScenarioResult,
+    SecurityConfig,
 )
 from datawraith.engine.runner import run_scenario
 from datawraith.engine.schema_parser import parse_schema
@@ -35,6 +36,7 @@ from datawraith.engine.seeder import (
 from datawraith.output.ascii_renderer import render_result
 from datawraith.output.comparator import compare_results, load_result, render_comparison
 from datawraith.output.json_exporter import JSONExporter
+from datawraith.output.report_exporter import ReportFormat, export_report
 
 app = typer.Typer(
     name="sdb",
@@ -222,7 +224,7 @@ def seed(
 def attack(
     scenario: Annotated[
         str | None,
-        typer.Argument(help="Scenario name. Supports concurrency, rw-heavy, and migration."),
+        typer.Argument(help="Scenario name. Supports concurrency, rw-heavy, migration, and security."),
     ] = None,
     duration: Annotated[int, typer.Option("--duration", help="Duration in seconds.")] = 10,
     workers: Annotated[int, typer.Option("--workers", help="Concurrent worker count.")] = 10,
@@ -264,6 +266,18 @@ def attack(
         int,
         typer.Option("--hold-lock-ms", help="Migration test-only lock hold in milliseconds."),
     ] = 0,
+    tenants: Annotated[
+        int,
+        typer.Option("--tenants", help="Security scenario tenant count."),
+    ] = 3,
+    rows_per_tenant: Annotated[
+        int,
+        typer.Option("--rows-per-tenant", help="Security scenario rows per tenant."),
+    ] = 10,
+    fuzz_payload_limit: Annotated[
+        int,
+        typer.Option("--fuzz-payloads", help="Security scenario SQL injection fuzz payload limit."),
+    ] = 8,
     output: Annotated[Path | None, typer.Option("--output", "-o", help="JSON report path.")] = None,
     output_dir: Annotated[
         Path | None,
@@ -323,6 +337,9 @@ def attack(
                 lock_timeout_ms=lock_timeout_ms,
                 statement_timeout_ms=statement_timeout_ms,
                 hold_lock_ms=hold_lock_ms,
+                tenants=tenants,
+                rows_per_tenant=rows_per_tenant,
+                fuzz_payload_limit=fuzz_payload_limit,
             )
         except ValueError as exc:
             typer.echo(f"Invalid {selected_scenario} config: {exc}", err=True)
@@ -375,6 +392,29 @@ def compare(
         typer.echo(json.dumps(comparison.model_dump(mode="json"), indent=2))
     else:
         typer.echo(render_comparison(comparison))
+
+
+@app.command()
+def report(
+    report_path: Annotated[Path, typer.Argument(help="Scenario JSON report path.")],
+    report_format: Annotated[
+        str,
+        typer.Option("--format", help="Report format: sarif, junit, or pdf."),
+    ],
+    output: Annotated[Path, typer.Option("--output", "-o", help="Output report path.")],
+) -> None:
+    """Export a DataWraith JSON report to CI/security-friendly formats."""
+    normalized_format = report_format.strip().lower()
+    if normalized_format not in {"sarif", "junit", "pdf"}:
+        typer.echo("Unsupported report format. Available: sarif, junit, pdf", err=True)
+        raise typer.Exit(code=1)
+    try:
+        result = load_result(report_path)
+        export_report(result, output, cast(ReportFormat, normalized_format))
+    except DataWraithError as exc:
+        typer.echo(f"Report export failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(f"Report written: {output}")
 
 
 @ai_app.command("setup")
@@ -443,13 +483,13 @@ def _select_attack_scenarios(*, scenario: str | None, run_all: bool) -> list[str
     if run_all and scenario is not None:
         raise DataWraithError("Use either a scenario argument or --all, not both.")
     if run_all:
-        return ["concurrency", "rw-heavy", "migration"]
+        return ["concurrency", "rw-heavy", "migration", "security"]
     if scenario is None:
         raise DataWraithError(
-            "Provide a scenario or pass --all. Available: concurrency, rw-heavy, migration"
+            "Provide a scenario or pass --all. Available: concurrency, rw-heavy, migration, security"
         )
-    if scenario not in {"concurrency", "rw-heavy", "migration"}:
-        raise DataWraithError("Unknown scenario. Available: concurrency, rw-heavy, migration")
+    if scenario not in {"concurrency", "rw-heavy", "migration", "security"}:
+        raise DataWraithError("Unknown scenario. Available: concurrency, rw-heavy, migration, security")
     return [scenario]
 
 
@@ -482,6 +522,9 @@ def _build_attack_config(
     lock_timeout_ms: int,
     statement_timeout_ms: int,
     hold_lock_ms: int,
+    tenants: int,
+    rows_per_tenant: int,
+    fuzz_payload_limit: int,
 ) -> ScenarioConfig:
     if scenario == "concurrency":
         return ConcurrencyConfig(
@@ -499,6 +542,14 @@ def _build_attack_config(
             row_count=row_count,
             operation_limit=operation_limit,
             slow_query_threshold_ms=slow_query_threshold_ms,
+        )
+    if scenario == "security":
+        return SecurityConfig(
+            duration_seconds=duration,
+            workers=workers,
+            tenants=tenants,
+            rows_per_tenant=rows_per_tenant,
+            fuzz_payload_limit=fuzz_payload_limit,
         )
     migration_table = "dw_migration_items" if target_table == "products" else target_table
     migration_column = "phase3_flag" if target_column == "stock" else target_column
