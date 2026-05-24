@@ -72,3 +72,14 @@ Reason: `pgserver` still gates embedded execution to Python 3.12, which makes
 the project harder to try on current runtimes. A local PostgreSQL fallback makes
 DataWraith more accessible for contributors and GitHub users without weakening
 the safety rule against accidental production database chaos testing.
+
+
+## 2026-05-24 - Add GitHub landing page and fallback E2E for v1 testing
+
+Decision: add a root `README.md`, `docker-compose.yml`, and a GitHub Actions
+PostgreSQL fallback E2E job.
+
+Reason: long-form project memory still belongs in `docs/`, but GitHub needs a
+root README for discoverability. The Docker/CI fallback gives contributors a
+repeatable way to test Phase 1-4 execute paths without waiting on Python 3.12
+embedded `pgserver` availability.

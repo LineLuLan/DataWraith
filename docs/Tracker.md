@@ -54,14 +54,17 @@ users now have a safe local PostgreSQL fallback through `--database-url` or
 - CLI execute commands accept `--database-url`; settings read
   `DATAWRAITH_DATABASE_URL`
 - Non-local PostgreSQL URLs are rejected by default for safety
+- Root `README.md` now provides a GitHub landing page with badges, v1 feature
+  summary, safety note, and smoke-test commands
+- `docker-compose.yml` provides an optional local PostgreSQL fallback for
+  contributors without Python 3.12/`pgserver`
+- CI includes a PostgreSQL service E2E job that runs Phase 1-4 execute flows on
+  Python 3.13 through `DATAWRAITH_E2E_DATABASE_URL`
 
 ## Next
 
 - Verify `sdb init --execute` on Python 3.12 with `pgserver` available.
 - Verify `sdb seed --execute` on Python 3.12 with `pgserver` available.
 - Verify all attack execute flows on Python 3.12 embedded mode.
-- Verify all attack execute flows on Python 3.13+ with
-  `DATAWRAITH_DATABASE_URL=postgresql://localhost/...`.
-- Add optional Docker Compose/local Postgres quickstart for contributors who do
-  not have Python 3.12.
+- Confirm GitHub Actions PostgreSQL fallback E2E passes on PR #6.
 - Expand TUI from command-hint dashboard into interactive init/seed/attack screens.

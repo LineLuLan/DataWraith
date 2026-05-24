@@ -59,11 +59,15 @@ sdb report security.json --format pdf --output security.pdf
 Local PostgreSQL fallback:
 
 ```bash
+docker compose up -d postgres
 $env:DATAWRAITH_DATABASE_URL="postgresql://localhost/datawraith"
 sdb init tests/fixtures/sample_schema.sql --execute
 sdb seed --table products --column id:int --column name:name --column stock:int --rows 10 --execute
 sdb attack concurrency --execute --duration 10 --workers 2 --updates 10 --output report.json
 ```
+
+The bundled `docker-compose.yml` starts PostgreSQL with
+`postgresql://datawraith:datawraith@localhost:5432/datawraith`.
 
 DataWraith rejects non-local PostgreSQL hosts by default. Do not point the tool
 at production databases.

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import importlib.util
 from pathlib import Path
 
 import pytest
@@ -10,10 +9,7 @@ from datawraith.core.shadow_db import ShadowDB
 from datawraith.core.types import ConcurrencyConfig, EventType
 from datawraith.engine.scenarios.concurrency import ConcurrencyScenario
 from datawraith.engine.seeder import SeedPlan, execute_seed_plan, parse_column_specs
-
-
-def pgserver_available() -> bool:
-    return importlib.util.find_spec("pgserver") is not None
+from tests.pgserver_support import pgserver_available
 
 
 @pytest.mark.asyncio
@@ -45,7 +41,7 @@ async def test_concurrency_scenario_runs_against_shadow_db(tmp_path: Path) -> No
             ConcurrencyConfig(
                 duration_seconds=10,
                 workers=2,
-                concurrent_updates=5,
+                concurrent_updates=10,
                 target_table="products",
                 target_column="stock",
             ),

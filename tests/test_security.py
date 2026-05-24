@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 from typing import Any
 
@@ -10,10 +9,7 @@ import datawraith.engine.scenarios.security as security_module
 from datawraith.core.shadow_db import ShadowDB
 from datawraith.core.types import EventType, SecurityConfig
 from datawraith.engine.scenarios.security import SecurityScenario
-
-
-def pgserver_available() -> bool:
-    return importlib.util.find_spec("pgserver") is not None
+from tests.pgserver_support import pgserver_available
 
 
 @pytest.mark.asyncio

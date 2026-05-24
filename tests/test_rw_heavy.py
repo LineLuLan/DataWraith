@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 from typing import Any
 
@@ -10,10 +9,7 @@ import datawraith.engine.scenarios.rw_heavy as rw_heavy_module
 from datawraith.core.shadow_db import ShadowDB
 from datawraith.core.types import EventType, RWHeavyConfig
 from datawraith.engine.scenarios.rw_heavy import RWHeavyScenario
-
-
-def pgserver_available() -> bool:
-    return importlib.util.find_spec("pgserver") is not None
+from tests.pgserver_support import pgserver_available
 
 
 @pytest.mark.asyncio

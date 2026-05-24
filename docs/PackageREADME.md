@@ -44,6 +44,14 @@ mypy datawraith
 > `DATAWRAITH_DATABASE_URL=postgresql://localhost/<db>` to run against a local
 > PostgreSQL instance. DataWraith rejects non-local hosts by default.
 
+Optional local PostgreSQL fallback:
+
+```bash
+docker compose up -d postgres
+$env:DATAWRAITH_DATABASE_URL="postgresql://datawraith:datawraith@localhost:5432/datawraith"
+sdb doctor
+```
+
 ## CLI
 
 ```bash

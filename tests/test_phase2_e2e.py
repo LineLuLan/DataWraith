@@ -1,23 +1,17 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from datawraith.cli import app
+from tests.e2e_helpers import runtime_args
 
 
-def pgserver_available() -> bool:
-    return importlib.util.find_spec("pgserver") is not None
-
-
-@pytest.mark.skipif(not pgserver_available(), reason="pgserver unavailable for this Python runtime")
 def test_phase2_rw_heavy_cli_flow(tmp_path: Path) -> None:
     runner = CliRunner()
-    data_dir = tmp_path / "shadow"
+    db_args = runtime_args(tmp_path)
     report_path = tmp_path / "rw-heavy.json"
 
     attack_result = runner.invoke(
@@ -36,8 +30,7 @@ def test_phase2_rw_heavy_cli_flow(tmp_path: Path) -> None:
             "20",
             "--output",
             str(report_path),
-            "--data-dir",
-            str(data_dir),
+            *db_args,
         ],
     )
     assert attack_result.exit_code == 0, attack_result.output
@@ -51,10 +44,9 @@ def test_phase2_rw_heavy_cli_flow(tmp_path: Path) -> None:
     assert "Comparing rw-heavy -> rw-heavy" in compare_result.output
 
 
-@pytest.mark.skipif(not pgserver_available(), reason="pgserver unavailable for this Python runtime")
 def test_phase2_attack_all_cli_flow(tmp_path: Path) -> None:
     runner = CliRunner()
-    data_dir = tmp_path / "shadow"
+    db_args = runtime_args(tmp_path)
     reports_dir = tmp_path / "reports"
 
     init_result = runner.invoke(
@@ -63,8 +55,7 @@ def test_phase2_attack_all_cli_flow(tmp_path: Path) -> None:
             "init",
             "tests/fixtures/sample_schema.sql",
             "--execute",
-            "--data-dir",
-            str(data_dir),
+            *db_args,
         ],
     )
     assert init_result.exit_code == 0, init_result.output
@@ -84,8 +75,7 @@ def test_phase2_attack_all_cli_flow(tmp_path: Path) -> None:
             "--rows",
             "10",
             "--execute",
-            "--data-dir",
-            str(data_dir),
+            *db_args,
         ],
     )
     assert seed_result.exit_code == 0, seed_result.output
@@ -108,8 +98,7 @@ def test_phase2_attack_all_cli_flow(tmp_path: Path) -> None:
             "20",
             "--output-dir",
             str(reports_dir),
-            "--data-dir",
-            str(data_dir),
+            *db_args,
         ],
     )
     assert attack_result.exit_code == 0, attack_result.output

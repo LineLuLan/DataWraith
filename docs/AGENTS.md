@@ -2,8 +2,9 @@
 
 ## Source of truth
 
-Read these before significant changes. All Markdown documentation lives in
-`docs/`, so paths below are relative to the repository root:
+Read these before significant changes. Markdown documentation lives in `docs/`;
+the only root Markdown exception is `README.md` for the GitHub landing page.
+Paths below are relative to the repository root:
 
 1. `docs/ProjectBrief.md`
 2. `docs/Architecture.md`

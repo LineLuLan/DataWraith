@@ -43,11 +43,13 @@
   `DATAWRAITH_DATABASE_URL` for Python 3.13+ users.
 - [x] Reject non-local PostgreSQL URLs by default to protect users from
   accidental production chaos testing.
-- [ ] Add README badges/screenshots/GIFs once the public GitHub landing page is
-  ready.
-- [ ] Add Docker Compose quickstart as an optional local PostgreSQL fallback.
-- [ ] Run full real DB E2E on both Python 3.12 embedded mode and Python 3.13
-  local PostgreSQL fallback before tagging v0.1.0.
+- [x] Add GitHub-facing root README with badges, safety note, and v1 smoke
+  commands.
+- [x] Add Docker Compose quickstart as an optional local PostgreSQL fallback.
+- [x] Add CI PostgreSQL fallback E2E job on Python 3.13.
+- [ ] Add screenshots/GIFs once the interactive TUI is more than a command
+  dashboard.
+- [ ] Run manual Python 3.12 embedded E2E before tagging v0.1.0.
 
 ## Detailed plan
 
