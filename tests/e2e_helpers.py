@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import os
 from pathlib import Path
 
@@ -10,6 +9,7 @@ import psycopg
 import pytest
 
 from datawraith.core.database_url import validate_local_database_url
+from tests.pgserver_support import pgserver_available
 
 E2E_TABLES = [
     "dw_security_records",
@@ -21,11 +21,6 @@ E2E_TABLES = [
     "dw_migration_items",
     "products",
 ]
-
-
-def pgserver_available() -> bool:
-    return importlib.util.find_spec("pgserver") is not None
-
 
 def runtime_args(tmp_path: Path) -> list[str]:
     database_url = local_database_url()

@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
 
 import pytest
 
 from datawraith.core.exceptions import ShadowDBError
 from datawraith.core.shadow_db import ShadowDB
-
-
-def pgserver_available() -> bool:
-    return importlib.util.find_spec("pgserver") is not None
+from tests.pgserver_support import pgserver_available
 
 
 def test_shadow_db_rejects_invalid_cleanup_mode() -> None:

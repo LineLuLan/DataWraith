@@ -9,7 +9,8 @@
   via `--database-url` / `DATAWRAITH_DATABASE_URL`, added a Docker Compose
   fallback, added CI PostgreSQL fallback E2E coverage, created the GitHub root
   README, fixed the Python 3.12 concurrency E2E config bound, and documented the
-  new runtime model.
+  new runtime model. Windows embedded `pgserver` tests are skipped by default
+  because bundled `initdb` is flaky on GitHub Windows runners.
 - Not completed: Real database E2E still needs a running local PostgreSQL
   service or Python 3.12 + `pgserver` in the environment.
 - Verification: `ruff check .`, `mypy datawraith`, `pytest`,
