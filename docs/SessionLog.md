@@ -21,3 +21,11 @@
 - Next: Confirm GitHub Actions PostgreSQL fallback E2E passes on PR #6 and run
   Python 3.12 embedded E2E before release.
 - Risks: Non-local DB execution remains intentionally blocked by default.
+
+## 2026-05-24 19:05
+- Goal: Document detailed v1 usage/testing flow and clarify cloud PostgreSQL handling.
+- Completed: Added `docs/UsageGuide.md`, linked it in MkDocs/README/quickstart, and documented Neon/Supabase safety policy.
+- Not completed: No remote-cloud execution mode was added; v1 remains local-only by design.
+- Verification: `mkdocs build --strict` passed.
+- Next: Commit docs and push to update the release PR.
+- Risks: Users may request direct Neon/Supabase testing; this requires explicit remote-shadow safeguards before implementation.

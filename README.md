@@ -78,5 +78,4 @@ mkdocs build --strict
 ```
 
 Full docs live in [`docs/`](docs/), especially
-[`docs/quickstart.md`](docs/quickstart.md) and
-[`docs/Architecture.md`](docs/Architecture.md).
+[`docs/quickstart.md`](docs/quickstart.md), [`docs/UsageGuide.md`](docs/UsageGuide.md), and [`docs/Architecture.md`](docs/Architecture.md).

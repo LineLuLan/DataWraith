@@ -93,3 +93,18 @@ and surface them at the top of the TUI.
 Reason: scenario syntax is powerful but too long for first-time users to
 memorize. Copy-paste recipes and a safe smoke-flow command reduce activation
 friction without hiding the underlying expert commands.
+
+## 2026-05-24 — Cloud PostgreSQL safety guidance
+
+Decision: v1 documentation now explicitly states that Neon, Supabase, and other
+hosted PostgreSQL services are conceptually compatible but not direct execution
+targets. DataWraith remains local-only by default and rejects non-local URLs.
+
+Rationale: chaos/security scenarios can create writes, locks, noisy logs, and
+cost/traffic side effects. The safe workflow is to export schema-only cloud
+PostgreSQL metadata, restore it into a local shadow PostgreSQL instance, seed
+synthetic data, and run DataWraith locally.
+
+Future option: add an explicit advanced remote-shadow mode only after designing
+strong confirmation, allowlist/denylist, disposable-branch guidance, and secret
+redaction safeguards.

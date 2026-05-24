@@ -10,14 +10,15 @@ Read these in order:
 
 1. `ProjectBrief.md` - product source of truth summary.
 2. `Architecture.md` - current scaffold contracts and boundaries.
-3. `BuildPlan_AllPhases.md` - cross-phase build roadmap.
-4. `BuildPlan_Phase1.md` - detailed Phase 1 build roadmap.
-5. `BuildPlan_Phase2.md` - detailed Phase 2 build roadmap.
-6. `BuildPlan_Phase3.md` - detailed Phase 3 build roadmap.
-7. `BuildPlan_Phase4.md` - detailed Phase 4 build roadmap.
-8. `Tracker.md` - current completed/next state.
-9. `Handoff.md` - latest implementation notes and known limits.
-10. `Decisions.md` - tradeoffs already chosen.
+3. `UsageGuide.md` - detailed user testing guide, runtime choices, and cloud PostgreSQL safety guidance.
+4. `BuildPlan_AllPhases.md` - cross-phase build roadmap.
+5. `BuildPlan_Phase1.md` - detailed Phase 1 build roadmap.
+6. `BuildPlan_Phase2.md` - detailed Phase 2 build roadmap.
+7. `BuildPlan_Phase3.md` - detailed Phase 3 build roadmap.
+8. `BuildPlan_Phase4.md` - detailed Phase 4 build roadmap.
+9. `Tracker.md` - current completed/next state.
+10. `Handoff.md` - latest implementation notes and known limits.
+11. `Decisions.md` - tradeoffs already chosen.
 
 The original source documents are preserved in:
 

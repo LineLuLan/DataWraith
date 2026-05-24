@@ -64,6 +64,7 @@ users now have a safe local PostgreSQL fallback through `--database-url` or
 - `sdb quickstart` provides a guided dry-run and `sdb quickstart --execute`
   runs the v1 smoke flow with safe defaults
 - TUI now highlights recipes/quickstart first to reduce syntax memorization
+- `docs/UsageGuide.md` documents detailed test usage, report flows, and safe Neon/Supabase/cloud PostgreSQL workflow
 
 ## Next
 
@@ -73,3 +74,4 @@ users now have a safe local PostgreSQL fallback through `--database-url` or
 - Confirm GitHub Actions PostgreSQL fallback E2E passes on PR #6.
 - Expand TUI from command-hint dashboard into interactive forms/buttons for
   init/seed/attack screens.
+- Consider a future explicit remote-shadow design for disposable Neon/Supabase branches; keep v1 local-only until safeguards exist.
