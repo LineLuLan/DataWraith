@@ -62,6 +62,12 @@ class RWHeavyConfig(ScenarioConfig):
     """Phase 2 read/write-heavy scenario config."""
 
     read_write_ratio: float = Field(default=0.7, ge=0.0, le=1.0)
+    row_count: int = Field(default=100, ge=10, le=1_000_000)
+    operation_limit: int = Field(default=1000, ge=1, le=10_000_000)
+    slow_query_threshold_ms: float = Field(default=100.0, ge=1.0)
+    products_table: str = Field(default="dw_products", min_length=1)
+    customers_table: str = Field(default="dw_customers", min_length=1)
+    orders_table: str = Field(default="dw_orders", min_length=1)
     use_window_functions: bool = True
     use_multi_join: bool = True
 

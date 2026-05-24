@@ -1,19 +1,21 @@
 # DataWraith
 
 DataWraith is a local PostgreSQL chaos-testing tool. Phase 1 focuses on the
-Concurrency Test foundation.
+Concurrency Test foundation, and Phase 2 adds the first RW-heavy workload behind
+the same embedded PostgreSQL runtime gate.
 
 ## Start here for new sessions
 
 Read these in order:
 
-1. `ProjectBrief.md` — product source of truth summary.
-2. `Architecture.md` — current scaffold contracts and boundaries.
-3. `BuildPlan_AllPhases.md` — cross-phase build roadmap.
-4. `BuildPlan_Phase1.md` — detailed current phase build roadmap.
-5. `Tracker.md` — current completed/next state.
-6. `Handoff.md` — latest implementation notes and known limits.
-7. `Decisions.md` — tradeoffs already chosen.
+1. `ProjectBrief.md` - product source of truth summary.
+2. `Architecture.md` - current scaffold contracts and boundaries.
+3. `BuildPlan_AllPhases.md` - cross-phase build roadmap.
+4. `BuildPlan_Phase1.md` - detailed Phase 1 build roadmap.
+5. `BuildPlan_Phase2.md` - detailed Phase 2 build roadmap.
+6. `Tracker.md` - current completed/next state.
+7. `Handoff.md` - latest implementation notes and known limits.
+8. `Decisions.md` - tradeoffs already chosen.
 
 The original source documents are preserved in:
 

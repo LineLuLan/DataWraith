@@ -6,6 +6,7 @@ from pathlib import Path
 
 from datawraith.core.types import HealthMetrics, ScenarioResult, ScenarioType
 from datawraith.output.ascii_renderer import render_result
+from datawraith.output.comparator import compare_results, render_comparison
 from datawraith.output.json_exporter import JSONExporter
 
 
@@ -45,3 +46,19 @@ def test_ascii_renderer_includes_summary() -> None:
 
     assert "CONCURRENCY" in rendered
     assert "Health Score: 95/100" in rendered
+
+
+def test_report_comparator_renders_metric_deltas() -> None:
+    baseline = _result()
+    current = baseline.model_copy(
+        update={
+            "health_score": 90,
+            "metrics": baseline.metrics.model_copy(update={"qps_avg": 10.0}),
+        }
+    )
+
+    rendered = render_comparison(compare_results(baseline, current))
+
+    assert "Comparing concurrency -> concurrency" in rendered
+    assert "health_score" in rendered
+    assert "qps_avg" in rendered

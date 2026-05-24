@@ -27,3 +27,14 @@ database execution.
 Reason: the active local runtime is Python 3.13 and cannot start `pgserver`.
 Dry-run primitives are still Phase 1-aligned, testable, and become reusable by
 the Python 3.12 `ShadowDB` execution path.
+
+
+## 2026-05-24 - Build Phase 2 behind the Python 3.12 DB gate
+
+Decision: implement the Phase 2 RW-heavy workload, compare command, rule-based
+analyzer, and PyInstaller workflow while keeping real embedded PostgreSQL E2E
+tests skipped unless `pgserver` is available.
+
+Reason: the user explicitly approved continuing auto-build work, but the local
+runtime still cannot install/start `pgserver`. Unit tests and dry-runs keep the
+new contracts healthy without falsely claiming real DB verification.

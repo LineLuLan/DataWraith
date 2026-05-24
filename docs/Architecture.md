@@ -16,6 +16,9 @@
 - Schema parser summarizes DDL and rejects obviously dangerous statements before future execution paths.
 - Seeder produces deterministic preview rows/SQL and has a parameterized psycopg insertion path for local ShadowDB; high-volume COPY optimization is deferred.
 - Concurrency Scenario MVP uses asyncpg connections per worker, conservative local defaults, and reports QPS, latency percentiles, errors, and deadlocks.
+- RW Heavy Scenario uses embedded ShadowDB, prepares local product/customer/order-style seed tables, runs a mixed SELECT/INSERT/UPDATE asyncpg workload, and reports QPS, latency percentiles, errors, and rule-based slow-query culprits.
+- `sdb attack --all --execute --output-dir reports/` runs implemented scenarios sequentially and writes one JSON report per scenario.
+- `sdb compare baseline.json current.json` validates two `ScenarioResult` JSON reports and compares health score, QPS, p95/p99 latency, and error rate; `--json` emits machine-readable deltas.
 - TUI currently acts as a Phase 1 command dashboard: runtime status, default ShadowDB path, Concurrency Test command hints, and a report placeholder.
 
 ## Embedded PostgreSQL

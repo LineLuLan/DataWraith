@@ -22,4 +22,7 @@ async def test_tui_composes_phase1_cards() -> None:
         assert pilot.app.query_one("#runtime-status", Static) is not None
         assert pilot.app.query_one("#attack-command", Static) is not None
         assert pilot.app.query_one("#attack-execute-command", Static) is not None
+        assert pilot.app.query_one("#rw-heavy-command", Static) is not None
+        assert pilot.app.query_one("#attack-all-command", Static) is not None
+        assert pilot.app.query_one("#compare-command", Static) is not None
         assert pilot.app.query_one("#report-summary", Static) is not None

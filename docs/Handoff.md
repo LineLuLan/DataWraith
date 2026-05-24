@@ -9,7 +9,8 @@
 5. Verify `sdb init tests/fixtures/sample_schema.sql --execute` on Python 3.12 with `pgserver` available.
 6. Verify `sdb seed --table products --column id:int --column name:name --rows 5 --execute` on Python 3.12 with `pgserver` available.
 7. Verify `sdb attack concurrency --execute --output report.json` on Python 3.12 with `pgserver` available.
-8. On Python 3.13, continue with interactive TUI screens or CLI UX polish that does not require real `pgserver`.
+8. Verify `sdb attack rw-heavy --execute --duration 10 --workers 2 --row-count 10 --operations 20 --output rw-heavy.json` on Python 3.12 with `pgserver` available.
+9. On Python 3.13, continue with interactive TUI screens or CLI UX polish that does not require real `pgserver`.
 
 ## Known limitation
 
@@ -25,9 +26,15 @@ support lands.
 - `sdb seed --table products --column id:int --rows 10 --execute` is wired to parameterized psycopg insertion against local ShadowDB; current Python 3.13 runtime cannot verify it because `pgserver` is unavailable.
 - `sdb attack concurrency --dry-run` validates config without database execution.
 - `sdb attack concurrency --execute --output report.json` is wired to the asyncpg Concurrency Scenario MVP; current Python 3.13 runtime cannot verify it because `pgserver` is unavailable.
+- `DataWraith.spec` and `.github/workflows/executable.yml` provide a Windows PyInstaller artifact path; pip remains the primary distribution.
+- `sdb compare baseline.json current.json` compares JSON reports for health score, QPS, p95/p99, and error rate; `--json` emits machine-readable deltas.
+- `sdb attack --all --execute --output-dir reports/` is wired to run concurrency and rw-heavy sequentially and write per-scenario JSON reports; current Python 3.13 runtime cannot verify it because `pgserver` is unavailable.
+- `sdb attack rw-heavy --execute --output rw-heavy.json` is wired to a self-contained ShadowDB workload that prepares product/customer/order seed tables and runs mixed SELECT/INSERT/UPDATE operations; current Python 3.13 runtime cannot verify it because `pgserver` is unavailable.
+- `sdb attack rw-heavy --dry-run` validates the Phase 2 config without database execution.
 - `sdb doctor --json` returns machine-readable health checks for automation.
 - `sdb` opens a minimal Textual dashboard with runtime status, command hints, and report placeholder.
 - `tests/test_phase1_e2e.py` captures the target alpha CLI flow and skips when `pgserver` is unavailable.
+- `tests/test_phase2_e2e.py` captures the Phase 2 rw-heavy CLI flow and skips when `pgserver` is unavailable.
 
 ## Safety reminder
 
