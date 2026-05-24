@@ -1,0 +1,221 @@
+from __future__ import annotations
+
+import json
+from datetime import datetime
+
+from typer.testing import CliRunner
+
+import datawraith.cli as cli_module
+from datawraith.cli import app
+from datawraith.core.types import HealthMetrics, ScenarioResult, ScenarioType, SeedResult
+
+
+def test_version_option() -> None:
+    result = CliRunner().invoke(app, ["--version"])
+
+    assert result.exit_code == 0
+    assert "DataWraith 0.1.0" in result.output
+
+
+def test_doctor_command() -> None:
+    result = CliRunner().invoke(app, ["doctor"])
+
+    assert result.exit_code == 0
+    assert "Python" in result.output
+    assert "pydantic" in result.output
+
+
+def test_doctor_json_command() -> None:
+    result = CliRunner().invoke(app, ["doctor", "--json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert "checks" in payload
+    assert any(check["name"] == "Python" for check in payload["checks"])
+
+
+def test_init_command_dry_run(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    schema_path = tmp_path / "schema.sql"
+    schema_path.write_text("CREATE TABLE products (id integer);", encoding="utf-8")
+
+    result = CliRunner().invoke(app, ["init", str(schema_path)])
+
+    assert result.exit_code == 0
+    assert "Tables discovered: 1" in result.output
+    assert "- products" in result.output
+
+
+def test_init_command_execute_uses_shadow_db(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    schema_path = tmp_path / "schema.sql"
+    schema_path.write_text("CREATE TABLE products (id integer);", encoding="utf-8")
+    calls: list[str] = []
+
+    class FakeShadowDB:
+        def __init__(self, data_dir, cleanup_mode):  # type: ignore[no-untyped-def]
+            calls.append(f"init:{data_dir.name}:{cleanup_mode}")
+
+        def start(self) -> str:
+            calls.append("start")
+            return "postgresql://example"
+
+        async def load_schema(self, sql: str) -> None:
+            calls.append(f"load:{'products' in sql}")
+
+        def list_tables(self) -> list[str]:
+            calls.append("list")
+            return ["products"]
+
+        def stop(self) -> None:
+            calls.append("stop")
+
+    monkeypatch.setattr(cli_module, "ShadowDB", FakeShadowDB)
+
+    result = CliRunner().invoke(
+        app,
+        ["init", str(schema_path), "--execute", "--data-dir", str(tmp_path / "shadow")],
+    )
+
+    assert result.exit_code == 0
+    assert "Loaded tables: 1" in result.output
+    assert "* products" in result.output
+    assert calls == ["init:shadow:stop", "start", "load:True", "list", "stop"]
+
+
+def test_seed_command_dry_run() -> None:
+    result = CliRunner().invoke(
+        app,
+        ["seed", "--table", "products", "--column", "id:int", "--column", "name:name", "--rows", "1"],
+    )
+
+    assert result.exit_code == 0
+    assert 'INSERT INTO "products"' in result.output
+
+
+def test_seed_command_execute_uses_shadow_db(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    calls: list[str] = []
+
+    class FakeShadowDB:
+        def __init__(self, data_dir, cleanup_mode):  # type: ignore[no-untyped-def]
+            calls.append(f"init:{data_dir.name}:{cleanup_mode}")
+
+        def start(self) -> str:
+            calls.append("start")
+            return "postgresql://example"
+
+        def stop(self) -> None:
+            calls.append("stop")
+
+    def fake_execute_seed_plan(db, plan):  # type: ignore[no-untyped-def]
+        calls.append(f"seed:{plan.table}:{plan.rows}")
+        return SeedResult(table=plan.table, rows_requested=plan.rows, rows_inserted=plan.rows, duration_seconds=0.1)
+
+    monkeypatch.setattr(cli_module, "ShadowDB", FakeShadowDB)
+    monkeypatch.setattr(cli_module, "execute_seed_plan", fake_execute_seed_plan)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "seed",
+            "--table",
+            "products",
+            "--column",
+            "id:int",
+            "--rows",
+            "2",
+            "--execute",
+            "--data-dir",
+            str(tmp_path / "shadow"),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Inserted 2/2 rows into products" in result.output
+    assert calls == ["init:shadow:stop", "start", "seed:products:2", "stop"]
+
+
+def test_attack_command_dry_run() -> None:
+    result = CliRunner().invoke(app, ["attack", "concurrency", "--dry-run"])
+
+    assert result.exit_code == 0
+    assert "Scenario: concurrency" in result.output
+
+
+def test_attack_output_requires_execute(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    result = CliRunner().invoke(
+        app,
+        ["attack", "concurrency", "--output", str(tmp_path / "report.json")],
+    )
+
+    assert result.exit_code == 1
+    assert "--output requires --execute" in result.output
+
+
+def test_attack_invalid_config_exits_nonzero() -> None:
+    result = CliRunner().invoke(app, ["attack", "concurrency", "--workers", "0"])
+
+    assert result.exit_code == 1
+    assert "Invalid concurrency config" in result.output
+
+
+def test_attack_execute_failure_is_user_friendly(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    async def fake_execute_attack(*args, **kwargs):  # type: ignore[no-untyped-def]
+        from datawraith.core.exceptions import DataWraithError
+
+        raise DataWraithError("pgserver unavailable")
+
+    monkeypatch.setattr(cli_module, "_execute_attack", fake_execute_attack)
+
+    result = CliRunner().invoke(
+        app,
+        ["attack", "concurrency", "--execute", "--data-dir", str(tmp_path / "shadow")],
+    )
+
+    assert result.exit_code == 1
+    assert "Attack failed: pgserver unavailable" in result.output
+
+
+def test_attack_command_execute_writes_output(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    async def fake_execute_attack(scenario, config, data_dir):  # type: ignore[no-untyped-def]
+        assert scenario == "concurrency"
+        assert config.workers == 2
+        assert data_dir.name == "shadow"
+        return ScenarioResult(
+            scenario_name="concurrency",
+            scenario_type=ScenarioType.CONCURRENCY,
+            config=config.model_dump(mode="json"),
+            started_at=datetime(2026, 5, 24, 12, 0, 0),
+            completed_at=datetime(2026, 5, 24, 12, 0, 1),
+            duration_seconds=1.0,
+            health_score=100,
+            metrics=HealthMetrics(
+                qps_max=2.0,
+                qps_avg=2.0,
+                latency_p50_ms=1.0,
+                latency_p95_ms=1.0,
+                latency_p99_ms=1.0,
+                error_count=0,
+                error_rate=0.0,
+            ),
+        )
+
+    monkeypatch.setattr(cli_module, "_execute_attack", fake_execute_attack)
+    report_path = tmp_path / "report.json"
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "attack",
+            "concurrency",
+            "--workers",
+            "2",
+            "--execute",
+            "--data-dir",
+            str(tmp_path / "shadow"),
+            "--output",
+            str(report_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Health Score: 100/100" in result.output
+    assert report_path.exists()
