@@ -67,6 +67,20 @@ sdb quickstart  # guided v1 smoke flow
 sdb             # TUI dashboard with command hints
 ```
 
+## Market product demo
+
+A disposable five-table product-management demo lives in
+[`examples/market-product-demo/`](examples/market-product-demo/). Use it to
+showcase DataWraith against a more realistic local PostgreSQL schema:
+
+```bash
+sdb init examples/market-product-demo/schema.sql --execute
+sdb init examples/market-product-demo/sample_data.sql --execute
+sdb attack concurrency --execute --table products --column stock --output reports/market-demo/concurrency.json
+```
+
+See [`docs/MarketProductDemo.md`](docs/MarketProductDemo.md) for the full flow.
+
 ## Developer checks
 
 ```bash
@@ -78,5 +92,4 @@ mkdocs build --strict
 ```
 
 Full docs live in [`docs/`](docs/), especially
-[`docs/quickstart.md`](docs/quickstart.md) and
-[`docs/Architecture.md`](docs/Architecture.md).
+[`docs/quickstart.md`](docs/quickstart.md), [`docs/UsageGuide.md`](docs/UsageGuide.md), and [`docs/Architecture.md`](docs/Architecture.md).

@@ -6,19 +6,16 @@ nav:
   - Home: index.md
   - Package README: PackageREADME.md
   - Quickstart: quickstart.md
+  - Usage & Testing Guide: UsageGuide.md
+  - Market Product Demo: MarketProductDemo.md
   - Project Brief: ProjectBrief.md
   - Architecture: Architecture.md
-  - Roadmap: Roadmap.md
   - All Phases Build Plan: BuildPlan_AllPhases.md
   - Phase 1 Build Plan: BuildPlan_Phase1.md
   - Phase 2 Build Plan: BuildPlan_Phase2.md
   - Phase 3 Build Plan: BuildPlan_Phase3.md
   - Phase 4 Build Plan: BuildPlan_Phase4.md
-  - Tracker: Tracker.md
-  - Handoff: Handoff.md
-  - Decisions: Decisions.md
-  - Risks: Risks.md
-  - Session Log: SessionLog.md
+  - Active State: ACTIVE_STATE.md
   - Agent Instructions: AGENTS.md
   - Claude Context: CLAUDE.md
   - Source Brief: DataWraith_Brief.md

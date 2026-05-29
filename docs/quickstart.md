@@ -72,3 +72,13 @@ The bundled `docker-compose.yml` starts PostgreSQL with
 
 DataWraith rejects non-local PostgreSQL hosts by default. Do not point the tool
 at production databases.
+
+## Detailed usage guide
+
+For a full step-by-step testing walkthrough, report interpretation, and guidance
+for Neon/Supabase/cloud PostgreSQL users, see `docs/UsageGuide.md`.
+
+Cloud PostgreSQL services such as Neon and Supabase are PostgreSQL-compatible,
+but DataWraith v1 intentionally rejects non-local hosts by default. Export a
+schema-only dump and test it against a local shadow PostgreSQL instance instead
+of running chaos/security scenarios directly against a hosted database.

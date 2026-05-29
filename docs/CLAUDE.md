@@ -25,7 +25,7 @@ All Markdown documentation is centralized under `docs/`.
 - No production DB writes.
 - No telemetry or external service calls by default.
 - No `print()` in library internals; CLI may use Typer output.
-- Keep module API contracts stable unless `docs/Architecture.md` and `docs/Decisions.md` are updated.
+- Keep module API contracts stable unless `docs/Architecture.md` and, when active state changes, `docs/ACTIVE_STATE.md` are updated.
 - Prefer root-cause fixes and focused tests.
 
 ## Module ownership

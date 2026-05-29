@@ -47,3 +47,14 @@ wheels through Python 3.12, so Python 3.13 cannot start embedded PostgreSQL
 until upstream support exists. Python 3.13 users can still run real execute
 flows against a local user-managed PostgreSQL instance via `--database-url` or
 `DATAWRAITH_DATABASE_URL`.
+
+## Durable Technical Decisions
+
+- **Scaffold before full engine**: package metadata, contracts, docs, CI, and minimal UI/CLI were created before deep scenario work so module ownership and public contracts stayed stable.
+- **Lazy `pgserver` runtime**: `pgserver` is optional and loaded lazily because current wheels cover Python 3.12 but not Python 3.13 embedded startup.
+- **Dry-run primitives first**: schema parsing, seed planning, and CLI dry-runs remain useful on runtimes where embedded PostgreSQL is unavailable.
+- **Local PostgreSQL fallback**: execute commands may use `--database-url` or `DATAWRAITH_DATABASE_URL` only for localhost/loopback/socket targets so Python 3.13+ users can run real flows safely.
+- **Cloud PostgreSQL safety**: Neon, Supabase, and other hosted PostgreSQL providers are conceptually compatible, but v1 does not run chaos/security scenarios directly against non-local URLs; users should export schema-only metadata into a local shadow DB.
+- **Offline-first AI advisory**: BYOK setup/status and `sdb ai analyze` use deterministic rule-based suggestions first; provider-backed network enrichment and auto-applied SQL are deferred.
+- **Local-only security/reporting**: security/isolation checks and SARIF/JUnit/PDF exports are designed for local shadow databases and CI-friendly artifacts, not production writes.
+- **Market-product demo**: `examples/market-product-demo/` exists as a synthetic five-table PostgreSQL showcase for GitHub visitors and testers without weakening production/cloud safety constraints.
