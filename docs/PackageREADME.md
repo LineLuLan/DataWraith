@@ -84,11 +84,8 @@ python -m datawraith --version
 
 ## Project docs
 
-- `docs/ProjectBrief.md` — product source of truth summary
-- `docs/Architecture.md` — scaffold architecture and contracts
-- `docs/BuildPlan_Phase1.md` — detailed file-level build roadmap
-- `docs/Roadmap.md` — phase roadmap
-- `docs/Tracker.md` — current implementation status
-- `docs/Handoff.md` — next-agent handoff
-- `docs/Decisions.md` — decisions and tradeoffs
-- `docs/DataWraith_Brief.md` / `docs/DataWraith_Blueprint_E2E.md` — original source docs
+- `docs/ProjectBrief.md` ? product source of truth summary
+- `docs/Architecture.md` ? architecture, contracts, and durable decisions
+- `docs/ACTIVE_STATE.md` ? current backlog, validation gaps, risks, and next execution gate
+- `docs/BuildPlan_Phase1.md` ? historical file-level build roadmap
+- `docs/DataWraith_Brief.md` / `docs/DataWraith_Blueprint_E2E.md` ? original source docs

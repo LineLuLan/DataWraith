@@ -248,4 +248,4 @@ Only start after v1.0:
 - Keep AI opt-in and advisory only.
 - Keep pip as primary distribution.
 - Keep all Markdown docs in `docs/`.
-- Update `docs/Tracker.md` and `docs/Handoff.md` after every meaningful change.
+- Update `docs/ACTIVE_STATE.md` after every meaningful change.

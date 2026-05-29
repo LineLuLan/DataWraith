@@ -8,13 +8,10 @@ Paths below are relative to the repository root:
 
 1. `docs/ProjectBrief.md`
 2. `docs/Architecture.md`
-3. `docs/BuildPlan_Phase1.md`
-4. `docs/Roadmap.md`
-5. `docs/Tracker.md`
-6. `docs/Handoff.md`
-7. `docs/Decisions.md`
-8. `docs/DataWraith_Brief.md`
-9. `docs/DataWraith_Blueprint_E2E.md`
+3. `docs/ACTIVE_STATE.md`
+4. `docs/BuildPlan_Phase1.md`
+5. `docs/DataWraith_Brief.md`
+6. `docs/DataWraith_Blueprint_E2E.md`
 
 ## Engineering rules
 

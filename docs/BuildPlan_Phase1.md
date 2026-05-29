@@ -1,8 +1,8 @@
 # DataWraith — Phase 1 Build Plan
 
 This is the file-level execution plan for future sessions. Start here after
-reading `docs/ProjectBrief.md`, `docs/Architecture.md`, `docs/Tracker.md`, and
-`docs/Handoff.md`.
+reading `docs/ProjectBrief.md`, `docs/Architecture.md`, and
+`docs/ACTIVE_STATE.md`.
 
 ## Current target
 
@@ -222,8 +222,7 @@ Files:
 - `pyproject.toml`
 - `docs/PackageREADME.md`
 - `docs/quickstart.md`
-- `docs/Tracker.md`
-- `docs/Handoff.md`
+- `docs/ACTIVE_STATE.md`
 
 Build:
 
