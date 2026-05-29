@@ -44,10 +44,10 @@ sdb doctor
 .\examples\market-product-demo\run-demo.ps1
 ```
 
-Optional shorter run:
+Optional low-worker run:
 
 ```powershell
-.\examples\market-product-demo\run-demo.ps1 -Duration 5 -Workers 2 -OutputDir reports\market-demo
+.\examples\market-product-demo\run-demo.ps1 -Duration 10 -Workers 2 -OutputDir reports\market-demo
 ```
 
 ## Fast demo on macOS/Linux/Git Bash

@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Annotated, cast
 
+import psycopg
 import typer
 
 from datawraith import __version__
@@ -809,6 +810,7 @@ def _collect_doctor_checks() -> list[tuple[str, bool, str]]:
     checks: list[tuple[str, bool, str]] = []
     database_url: str | None = None
     database_url_error: DataWraithError | None = None
+    database_connection_error: str | None = None
 
     python_ok = sys.version_info >= (3, 12)
     checks.append(("Python", python_ok, sys.version.split()[0]))
@@ -821,14 +823,18 @@ def _collect_doctor_checks() -> list[tuple[str, bool, str]]:
 
     try:
         database_url = _resolve_database_url(None)
+        if database_url is not None:
+            database_connection_error = _check_database_url_connection(database_url)
     except DataWraithError as exc:
         database_url_error = exc
 
     pgserver_found = importlib.util.find_spec("pgserver") is not None
     if pgserver_found:
         checks.append(("pgserver", True, "available"))
-    elif database_url is not None:
+    elif database_url is not None and database_connection_error is None:
         checks.append(("pgserver", True, "unavailable; local PostgreSQL fallback configured"))
+    elif database_url is not None:
+        checks.append(("pgserver", False, "unavailable; local PostgreSQL fallback failed"))
     elif sys.version_info >= (3, 13):
         checks.append(
             (
@@ -843,11 +849,24 @@ def _collect_doctor_checks() -> list[tuple[str, bool, str]]:
 
     if database_url_error is not None:
         checks.append(("database_url", False, str(database_url_error)))
+    elif database_connection_error is not None:
+        checks.append(("database_url", False, database_connection_error))
     else:
         detail = "configured local PostgreSQL fallback" if database_url else "not configured"
         checks.append(("database_url", True, detail))
 
     return checks
+
+
+def _check_database_url_connection(database_url: str) -> str | None:
+    """Return a human-readable connection error for a local fallback URL."""
+    try:
+        with psycopg.connect(database_url, connect_timeout=5) as conn:
+            conn.execute("SELECT 1")
+    except psycopg.Error as exc:
+        detail = str(exc).splitlines()[0]
+        return f"configured but connection failed: {detail}"
+    return None
 
 
 async def _execute_attack(

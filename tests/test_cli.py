@@ -36,6 +36,7 @@ def test_doctor_json_command() -> None:
 
 def test_doctor_json_accepts_local_database_url_fallback(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     monkeypatch.setenv("DATAWRAITH_DATABASE_URL", "postgresql://localhost/datawraith")
+    monkeypatch.setattr(cli_module, "_check_database_url_connection", lambda database_url: None)
 
     result = CliRunner().invoke(app, ["doctor", "--json"])
 
@@ -44,6 +45,24 @@ def test_doctor_json_accepts_local_database_url_fallback(monkeypatch) -> None:  
     database_check = next(check for check in payload["checks"] if check["name"] == "database_url")
     assert database_check["ok"] is True
     assert database_check["detail"] == "configured local PostgreSQL fallback"
+
+
+def test_doctor_json_reports_failed_local_database_url_connection(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setenv("DATAWRAITH_DATABASE_URL", "postgresql://localhost/datawraith")
+    monkeypatch.setattr(
+        cli_module,
+        "_check_database_url_connection",
+        lambda database_url: "configured but connection failed: authentication failed",
+    )
+
+    result = CliRunner().invoke(app, ["doctor", "--json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    database_check = next(check for check in payload["checks"] if check["name"] == "database_url")
+    assert database_check["ok"] is False
+    assert "connection failed" in database_check["detail"]
+    assert payload["ok"] is False
 
 
 def test_recipes_command_prints_copy_paste_commands() -> None:

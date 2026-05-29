@@ -4,6 +4,10 @@ set -euo pipefail
 DURATION="${DURATION:-10}"
 WORKERS="${WORKERS:-4}"
 OUTPUT_DIR="${OUTPUT_DIR:-reports/market-demo}"
+if [ "${DURATION}" -lt 10 ]; then
+  printf 'Duration must be >= 10 because DataWraith scenario configs enforce a 10 second minimum.\n' >&2
+  exit 1
+fi
 DEMO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${DEMO_ROOT}/../.." && pwd)"
 REPORT_DIR="${REPO_ROOT}/${OUTPUT_DIR}"
